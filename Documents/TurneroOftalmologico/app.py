@@ -202,9 +202,23 @@ def agregar_doctor():
 @app.route('/api/doctores/<int:doctor_id>', methods=['DELETE'])
 def eliminar_doctor(doctor_id):
     conn = get_db_connection()
+    
+    turnos_activos = conn.execute(
+        'SELECT COUNT(*) as count FROM turnos WHERE doctor_asignado = ? AND estado != "FINALIZADO"',
+        (doctor_id,)
+    ).fetchone()['count']
+    
+    if turnos_activos > 0:
+        conn.close()
+        return jsonify({
+            'success': False, 
+            'error': f'No se puede eliminar doctor con {turnos_activos} turnos activos'
+        })
+    
     conn.execute('DELETE FROM doctores WHERE id = ?', (doctor_id,))
     conn.commit()
     conn.close()
+    
     return jsonify({'success': True})
 
 if __name__ == '__main__':

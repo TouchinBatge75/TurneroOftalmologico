@@ -1083,11 +1083,6 @@
                                     <span class="${doctor.activo ? 'estado-activo' : 'estado-inactivo'}">
                                         ${doctor.activo ? '✅ Activo' : '❌ Inactivo'}
                                     </span>
-                                    <label class="switch">
-                                        <input type="checkbox" ${doctor.activo ? 'checked' : ''} 
-                                            onchange="cambiarEstadoDoctor(${doctor.id}, this.checked)">
-                                        <span class="slider"></span>
-                                    </label>
                                 </div>
                             </div>
                             <button class="btn-eliminar" onclick="eliminarDoctor(${doctor.id})">🗑️ Eliminar</button>
@@ -1095,28 +1090,7 @@
                     `).join('');
                 }
 
-                function cambiarEstadoDoctor(doctorId, activo) {
-                    fetch(`/api/doctores/${doctorId}/estado`, {
-                        method: 'PUT',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ activo: activo })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            cargarDoctores();
-                            cargarDoctoresParaEdicion(); 
-                        } else {
-                            alert('Error al cambiar estado del doctor');
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        alert('Error al cambiar estado del doctor');
-                    });
-                }
+                
 
                 function eliminarDoctor(doctorId) {
                     if (confirm('¿Estás seguro de que quieres eliminar este doctor? Esta acción no se puede deshacer.')) {
