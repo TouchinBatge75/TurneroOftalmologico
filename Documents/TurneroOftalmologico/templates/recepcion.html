@@ -276,6 +276,144 @@
         .boton-rapido.cuaternario {
             background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
         }
+
+        /* Estilos para el panel de doctores */
+        .doctor-card {
+            background: #f8f9fa;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border-left: 4px solid #007bff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .doctor-info {
+            flex: 1;
+        }
+
+        .doctor-nombre {
+            font-weight: bold;
+            font-size: 16px;
+            color: #333;
+        }
+
+        .doctor-especialidad {
+            color: #666;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+
+        .doctor-estado {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .estado-activo {
+            color: #28a745;
+            font-weight: bold;
+        }
+
+        .estado-inactivo {
+            color: #dc3545;
+            font-weight: bold;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: #28a745;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+
+        .btn-eliminar {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+
+        .btn-eliminar:hover {
+            background-color: #c82333;
+        }
+        .modal-content.scrollable {
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+
+        .modal-body {
+            max-height: 60vh;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+
+        /* Scrollbar personalizado */
+        .modal-body::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .modal-body::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+
+        .modal-body::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 4px;
+        }
+
+        .modal-body::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+        .modal-content {
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+
     </style>
 </head>
 <body>
@@ -292,7 +430,7 @@
                 <button class="boton-rapido" onclick="limpiarFormulario()">🧹 Limpiar Formulario</button>
                 <button class="boton-rapido secundario" onclick="exportarDatos()">📤 Exportar Datos</button>
                 <button class="boton-rapido terciario" onclick="reiniciarSistema()">🔄 Reiniciar Sistema</button>
-                <button class="boton-rapido cuaternario" onclick="abrirConfiguracion()">⚙️ Configuración</button>
+                <button class="boton-rapido cuaternario" onclick="abrirPanelDoctores()">👨🏽‍⚕️ Administrar Doctores</button>
                 <button class="boton-rapido" onclick="verManual()">📖 Manual de Uso</button>
                 <button class="boton-rapido secundario" onclick="hacerBackup()">💾 Hacer Backup</button>
             </div>
@@ -396,6 +534,58 @@
         </div>
     </div>
 
+        <!-- Modal de Administración de Doctores -->
+    <div id="modalDoctores" class="modal hidden">
+    <div class="modal-content scrollable" style="max-width: 800px;">
+        <span class="close" onclick="cerrarModalDoctores()">&times;</span>
+        <h2>👨‍⚕️ Administración de Doctores</h2>
+        
+        <!-- Formulario para agregar doctor (fijo en la parte superior) -->
+        <div class="form-section" style="margin-bottom: 20px;">
+            <h3>➕ Agregar Nuevo Doctor</h3>
+            <form id="formAgregarDoctor">
+                <div class="form-group">
+                    <label for="nuevo_doctor_nombre">Nombre del Doctor:</label>
+                    <input type="text" id="nuevo_doctor_nombre" required placeholder="Ej: Dr. Juan Pérez">
+                </div>
+                
+                <div class="form-group">
+                    <label for="nuevo_doctor_especialidad">Especialidad/Consultorio:</label>
+                    <input type="text" id="nuevo_doctor_especialidad" required placeholder="Ej: Consultorio 1, Retina, etc.">
+                </div>
+                
+                <div class="form-group">
+                    <label for="nuevo_doctor_activo">Estado Inicial:</label>
+                    <select id="nuevo_doctor_activo">
+                        <option value="1">Activo (Disponible hoy)</option>
+                        <option value="0">Inactivo (No disponible)</option>
+                    </select>
+                </div>
+                
+                <button type="submit">Agregar Doctor</button>
+            </form>
+        </div>
+
+        <!-- Lista de doctores (área scrollable) -->
+        <div class="form-section">
+            <h3>📋 Lista de Doctores</h3>
+            <div class="modal-body" id="listaDoctoresAdmin">
+                <p>Cargando doctores...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+            <!-- Lista de doctores -->
+            <div class="form-section">
+                <h3>📋 Lista de Doctores</h3>
+                <div id="listaDoctoresAdmin">
+                    <p>Cargando doctores...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal de Edición -->
     <div id="modalEditar" class="modal hidden">
         <div class="modal-content">
@@ -438,7 +628,6 @@
                     <label for="editar_doctor_asignado">Doctor Asignado:</label>
                     <select id="editar_doctor_asignado">
                         <option value="">Sin doctor asignado</option>
-                        <!-- Se llenará dinámicamente -->
                     </select>
                 </div>
                 
@@ -460,20 +649,36 @@
 
         // Cargar lista de doctores activos
         function cargarDoctores() {
-            fetch('/api/doctores')
-                .then(response => response.json())
-                .then(doctores => {
-                    const selector = document.getElementById('doctor_asignado');
-                    selector.innerHTML = '<option value="">Seleccionar doctor</option>';
-                    
-                    doctores.forEach(doctor => {
-                        const option = document.createElement('option');
-                        option.value = doctor.id;
-                        option.textContent = `${doctor.nombre} - ${doctor.especialidad}`;
-                        selector.appendChild(option);
-                    });
+        fetch('/api/doctores')
+            .then(response => response.json())
+            .then(doctores => {
+                const selector = document.getElementById('doctor_asignado');
+                selector.innerHTML = '<option value="">Seleccionar doctor</option>';
+                
+                // FILTRAR solo doctores activos
+                const doctoresActivos = doctores.filter(doctor => doctor.activo === 1);
+                
+                if (doctoresActivos.length === 0) {
+                    const option = document.createElement('option');
+                    option.value = "";
+                    option.textContent = "No hay doctores disponibles";
+                    selector.appendChild(option);
+                    return;
+                }
+                
+                doctoresActivos.forEach(doctor => {
+                    const option = document.createElement('option');
+                    option.value = doctor.id;
+                    option.textContent = `${doctor.nombre} - ${doctor.especialidad}`;
+                    selector.appendChild(option);
                 });
-        }
+            })
+            .catch(error => {
+                console.error('Error cargando doctores:', error);
+                const selector = document.getElementById('doctor_asignado');
+                selector.innerHTML = '<option value="">Error al cargar doctores</option>';
+            });
+}
 
         // Mostrar/ocultar opciones según tipo de turno
         function mostrarOpcionesEspecificas() {
@@ -635,14 +840,20 @@
                 .then(doctores => {
                     const selector = document.getElementById('editar_doctor_asignado');
                     selector.innerHTML = '<option value="">Sin doctor asignado</option>';
+                
+                    const doctoresActivos = doctores.filter(doctor => doctor.activo === 1);
                     
-                    doctores.forEach(doctor => {
+                    doctoresActivos.forEach(doctor => {
                         const option = document.createElement('option');
                         option.value = doctor.id;
                         option.textContent = `${doctor.nombre} - ${doctor.especialidad}`;
                         selector.appendChild(option);
                     });
-                });
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+               
         }
 
         function mostrarSelectorDoctorEdicion(estacionId) {
@@ -684,7 +895,7 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert('✅ Turno editado correctamente');
+                    alert('Turno editado correctamente');
                     cerrarModal();
                     cargarTurnos();
                 } else {
@@ -747,9 +958,147 @@
         }
 
         function exportarDatos() {
-            alert('📤 Función de exportación en desarrollo...');
+            alert('Función de exportación en desarrollo...');
             // Aquí iría la lógica para exportar a Excel/PDF
         }
+        
+        
+        //Panel de doctores
+        function abrirPanelDoctores() {
+            cargarDoctoresAdmin();
+            document.getElementById('modalDoctores').classList.remove('hidden');
+            }
+
+                function cerrarModalDoctores() {
+                    document.getElementById('modalDoctores').classList.add('hidden');
+                }
+
+                function cargarDoctoresAdmin() {
+                    fetch('/api/doctores/todos')
+                        .then(response => response.json())
+                        .then(doctores => {
+                            mostrarDoctoresAdmin(doctores);
+                        })
+                        .catch(error => {
+                            console.error('Error cargando doctores:', error);
+                            document.getElementById('listaDoctoresAdmin').innerHTML = '<p>Error al cargar doctores</p>';
+                        });
+                }
+
+                function mostrarDoctoresAdmin(doctores) {
+                    const contenedor = document.getElementById('listaDoctoresAdmin');
+                    
+                    if (doctores.length === 0) {
+                        contenedor.innerHTML = '<p>No hay doctores registrados</p>';
+                        return;
+                    }
+
+                    contenedor.innerHTML = doctores.map(doctor => `
+                        <div class="doctor-card">
+                            <div class="doctor-info">
+                                <div class="doctor-nombre">${doctor.nombre}</div>
+                                <div class="doctor-especialidad">${doctor.especialidad}</div>
+                                <div class="doctor-estado">
+                                    <span class="${doctor.activo ? 'estado-activo' : 'estado-inactivo'}">
+                                        ${doctor.activo ? '✅ Activo' : '❌ Inactivo'}
+                                    </span>
+                                    <label class="switch">
+                                        <input type="checkbox" ${doctor.activo ? 'checked' : ''} 
+                                            onchange="cambiarEstadoDoctor(${doctor.id}, this.checked)">
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                            <button class="btn-eliminar" onclick="eliminarDoctor(${doctor.id})">🗑️ Eliminar</button>
+                        </div>
+                    `).join('');
+                }
+
+                function cambiarEstadoDoctor(doctorId, activo) {
+                    fetch(`/api/doctores/${doctorId}/estado`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ activo: activo })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            cargarDoctores();
+                            cargarDoctoresParaEdicion(); 
+                        } else {
+                            alert('Error al cambiar estado del doctor');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Error al cambiar estado del doctor');
+                    });
+                }
+
+                function eliminarDoctor(doctorId) {
+                    if (confirm('¿Estás seguro de que quieres eliminar este doctor? Esta acción no se puede deshacer.')) {
+                        fetch(`/api/doctores/${doctorId}`, {
+                            method: 'DELETE'
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                cargarDoctoresAdmin(); 
+                                cargarDoctores(); 
+                                cargarDoctoresParaEdicion();
+                            } else {
+                                alert('Error al eliminar doctor');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            alert('Error al eliminar doctor');
+                        });
+                    }
+                }
+
+                // Agregar nuevo doctor
+                document.getElementById('formAgregarDoctor').addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    
+                    const datos = {
+                        nombre: document.getElementById('nuevo_doctor_nombre').value,
+                        especialidad: document.getElementById('nuevo_doctor_especialidad').value,
+                        activo: document.getElementById('nuevo_doctor_activo').value === '1'
+                    };
+
+                    fetch('/api/doctores/nuevo', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(datos)
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            document.getElementById('formAgregarDoctor').reset();
+                            cargarDoctoresAdmin(); 
+                            cargarDoctores(); 
+                            cargarDoctoresParaEdicion();
+                        } else {
+                            alert('Error al agregar doctor');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Error al agregar doctor');
+                    });
+                });
+
+                // Cerrar modal al hacer clic fuera
+                document.getElementById('modalDoctores').addEventListener('click', function(e) {
+                    if (e.target === this) {
+                        cerrarModalDoctores();
+                    }
+                });
 
         function reiniciarSistema() {
             if (confirm('¿Estás seguro de querer reiniciar el sistema? Esto limpiará todos los turnos activos.')) {
@@ -757,9 +1106,7 @@
             }
         }
 
-        function abrirConfiguracion() {
-            alert('⚙️ Panel de configuración en desarrollo...');
-        }
+       
 
         function verManual() {
             alert('📖 Abriendo manual de usuario...');

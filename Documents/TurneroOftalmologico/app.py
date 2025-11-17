@@ -165,6 +165,47 @@ def get_estadisticas_mes(mes=None, anio=None):
     except Exception as e:
         print(f"Error en API estadísticas mes: {e}")
         return jsonify({'error': str(e)}), 500
+    
+
+    # API: Obtener TODOS los doctores (activos e inactivos)
+@app.route('/api/doctores/todos')
+def get_todos_doctores():
+    conn = get_db_connection()
+    doctores = conn.execute('SELECT * FROM doctores ORDER BY nombre').fetchall()
+    conn.close()
+    return jsonify([dict(d) for d in doctores])
+
+# API: Cambiar estado de doctor
+@app.route('/api/doctores/<int:doctor_id>/estado', methods=['PUT'])
+def cambiar_estado_doctor(doctor_id):
+    data = request.json
+    conn = get_db_connection()
+    conn.execute('UPDATE doctores SET activo = ? WHERE id = ?', (data['activo'], doctor_id))
+    conn.commit()
+    conn.close()
+    return jsonify({'success': True})
+
+# API: Agregar nuevo doctor
+@app.route('/api/doctores/nuevo', methods=['POST'])
+def agregar_doctor():
+    data = request.json
+    conn = get_db_connection()
+    conn.execute('''
+        INSERT INTO doctores (nombre, especialidad, activo)
+        VALUES (?, ?, ?)
+    ''', (data['nombre'], data['especialidad'], data['activo']))
+    conn.commit()
+    conn.close()
+    return jsonify({'success': True})
+
+# API: Eliminar doctor
+@app.route('/api/doctores/<int:doctor_id>', methods=['DELETE'])
+def eliminar_doctor(doctor_id):
+    conn = get_db_connection()
+    conn.execute('DELETE FROM doctores WHERE id = ?', (doctor_id,))
+    conn.commit()
+    conn.close()
+    return jsonify({'success': True})
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
