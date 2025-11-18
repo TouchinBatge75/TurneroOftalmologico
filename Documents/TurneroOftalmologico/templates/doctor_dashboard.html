@@ -169,10 +169,16 @@
         .btn-llamar {
             background: linear-gradient(135deg, #2ecc71 0%, #1abc9c 100%);
         }
-
-        .btn-pausar {
-            background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+        .btn-recepcion {
+            background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
         }
+
+        .btn-recepcion:hover {
+            background: linear-gradient(135deg, #6c5ce7 0%, #0984e3 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(116, 185, 255, 0.4);
+        }
+        
 
         .btn-salir {
             background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
@@ -329,8 +335,8 @@
             <button class="btn-llamar btn-principal" onclick="llamarSiguiente()">
                 🔄 Llamar Siguiente
             </button>
-            <button class="btn-pausar btn-principal" onclick="cambiarEstado('EN_CONSULTA')">
-                ⏸️ Pausar Consulta
+            <button class="btn-recepcion btn-principal" onclick="llamarRecepcion()">
+                📞 Llamar a Recepción
             </button>
             <button class="btn-salir btn-principal" onclick="cambiarEstado('AUSENTE')">
                 🔴 Marcar Ausente
@@ -658,6 +664,91 @@
                 window.location.href = '/doctor-login';
             }
         }
+
+        //Llamar a Recepcion
+        function llamarRecepcion() {
+    if (!sesionDoctor) return;
+    
+    // Mensajes predefinidos para facilitar
+    const mensajesRapidos = [
+        "📋 Necesito historial médico de un paciente",
+        "🚨 Urgencia en consultorio - asistencia requerida",
+        "🔧 Problema técnico con equipo médico",
+        "💊 Necesito medicamento de farmacia",
+        "📄 Requiero estudios/laboratorios",
+        "👥 Coordinar derivación con especialista",
+        "⏰ Informar retraso en consultas",
+        "📞 Llamar por teléfono al consultorio",
+        "🔄 Paciente vuelve a consulta",
+        "❓ Otra situación - especificar en mensaje"
+    ];
+    
+    let mensaje = prompt(
+        `📞 Llamar a Recepción\n\n¿Qué necesitas comunicar?\n\nO selecciona una opción rápida:\n${
+            mensajesRapidos.map((msg, i) => `${i + 1}. ${msg}`).join('\n')
+        }\n\nEscribe tu mensaje o el número de la opción:`, 
+        ''
+    );
+    
+    if (mensaje && mensaje.trim() !== '') {
+        // Si el usuario escribió un número, usar el mensaje predefinido
+        const numero = parseInt(mensaje.trim());
+        if (!isNaN(numero) && numero >= 1 && numero <= mensajesRapidos.length) {
+            mensaje = mensajesRapidos[numero - 1];
+        }
+        
+        // Mostrar confirmación con opción de editar
+        const mensajeFinal = confirm(
+            `✅ ¿Enviar este mensaje a recepción?\n\n"${mensaje.trim()}"\n\nOK para enviar, Cancelar para editar`
+        ) ? mensaje.trim() : null;
+        
+        if (mensajeFinal) {
+            // Mostrar feedback inmediato
+            mostrarNotificacionDoctor('Mensaje enviado a recepción', 'success');
+            
+            // Enviar notificación a recepción
+            enviarNotificacionRecepcion(mensajeFinal);
+        } else {
+            // Volver a llamar la función para editar
+            setTimeout(llamarRecepcion, 100);
+        }
+    }
+}
+
+function mostrarNotificacionDoctor(mensaje, tipo = 'info') {
+    // Implementación similar a la de recepción pero para doctor
+    console.log(`[DOCTOR] ${tipo.toUpperCase()}: ${mensaje}`);
+    
+    // Puedes implementar notificaciones visuales en el dashboard del doctor también
+    alert(`✅ ${mensaje}`); // Temporal - mejorar con UI propia
+}
+
+        function enviarNotificacionRecepcion(mensaje) {
+            fetch('/api/doctor/notificar-recepcion', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    doctor_id: sesionDoctor.doctor_id,
+                    doctor_nombre: sesionDoctor.doctor_nombre,
+                    consultorio: sesionDoctor.consultorio,
+                    mensaje: mensaje,
+                    timestamp: new Date().toISOString()
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    console.log('Notificación enviada a recepción');
+                }
+            })
+            .catch(error => {
+                console.error('Error enviando notificación:', error);
+                // Aún así mostramos el alert al doctor, aunque falle el backend
+            });
+}
+       
     </script>
 </body>
 </html>

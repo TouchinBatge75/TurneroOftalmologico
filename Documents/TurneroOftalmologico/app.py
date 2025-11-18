@@ -4,6 +4,8 @@ import sqlite3
 from estadisticas import registrar_historial, obtener_estadisticas_dia, obtener_estadisticas_mensual
 from datetime import datetime
 
+notificaciones_recepcion = []
+
 app = Flask(__name__)
 
 def get_db_connection():
@@ -199,13 +201,13 @@ def eliminar_doctor(doctor_id):
         WHERE doctor_asignado = ? AND estado IN ("PENDIENTE", "EN_ATENCION")
     ''', (doctor_id,)).fetchone()
 
-    
-    if turnos_activos > 0:
+    if turnos_activos['count'] > 0:
         conn.close()
         return jsonify({
             'success': False, 
-            'error': f'No se puede eliminar doctor con {turnos_activos} turnos activos'
+            'error': f'No se puede eliminar doctor con {turnos_activos["count"]} turnos activos'
         })
+    
     
     conn.execute('DELETE FROM doctores WHERE id = ?', (doctor_id,))
     conn.commit()
@@ -224,8 +226,12 @@ def doctor_login():
     conn = get_db_connection()
     
     try:
-        # Actualizar estado del doctor a ACTIVO
-        conn.execute('UPDATE doctores SET activo = 1 WHERE id = ?', (data['doctor_id'],))
+        estado = data.get('estado', 'DISPONIBLE')
+        activo = 0 if estado == 'AUSENTE' else 1
+        
+        # Actualizar estado del doctor
+        conn.execute('UPDATE doctores SET activo = ?, estado_detallado = ? WHERE id = ?', 
+                    (activo, estado, data['doctor_id']))
         
         # Obtener nombre del doctor para la respuesta
         doctor = conn.execute('SELECT nombre FROM doctores WHERE id = ?', (data['doctor_id'],)).fetchone()
@@ -238,7 +244,6 @@ def doctor_login():
             'doctor_nombre': doctor['nombre'],
             'message': 'Sesión iniciada correctamente'
         })
-        
     except Exception as e:
         print(f"Error en login doctor: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -311,13 +316,13 @@ def cambiar_estado_doctor():
     conn = get_db_connection()
     
     # Convertir estado a valor activo/inactivo
-    activo = 1 if estado in ['DISPONIBLE', 'EN_CONSULTA'] else 0
+    activo = 0 if estado == 'AUSENTE' else 1
     
     conn.execute('''
         UPDATE doctores 
-        SET activo = ?
+        SET activo = ?, estado_detallado= ?
         WHERE id = ?
-    ''', (activo, doctor_id))
+    ''', (activo, estado, doctor_id))
     
     conn.commit()
     conn.close()
@@ -362,6 +367,145 @@ def finalizar_consulta():
     conn.close()
     
     return jsonify({'success': True})
+
+
+# API para notificar a recepción
+@app.route('/api/doctor/notificar-recepcion', methods=['POST'])
+def notificar_recepcion():
+    try:
+        data = request.json
+        
+        # Validar datos requeridos
+        required_fields = ['doctor_id', 'doctor_nombre', 'mensaje']
+        for field in required_fields:
+            if not data.get(field):
+                return jsonify({'success': False, 'error': f'Campo requerido: {field}'}), 400
+        
+        notificacion = {
+            'id': len(notificaciones_recepcion) + 1,
+            'doctor_id': data['doctor_id'],
+            'doctor_nombre': data['doctor_nombre'],
+            'consultorio': data.get('consultorio', 'No especificado'),
+            'mensaje': data['mensaje'],
+            'timestamp': datetime.now().isoformat(),
+            'leida': False,
+            'tipo': 'CONSULTORIO_RECEPCION'
+        }
+        
+        # Guardar notificación
+        notificaciones_recepcion.append(notificacion)
+        
+        # Mantener solo las últimas 50 notificaciones
+        if len(notificaciones_recepcion) > 50:
+            notificaciones_recepcion.pop(0)
+        
+        print(f"🔔 NUEVA NOTIFICACIÓN - Doctor: {data['doctor_nombre']}")
+        print(f"📝 Mensaje: {data['mensaje']}")
+        print(f"⏰ Hora: {notificacion['timestamp']}")
+        print("-" * 50)
+        
+        # Registrar en historial del sistema
+        registrar_historial(0, 'NOTIFICACION_RECEPCION', 
+                           f"Doctor: {data['doctor_nombre']} - {data['mensaje']}")
+        
+        return jsonify({
+            'success': True, 
+            'message': 'Notificación enviada correctamente',
+            'notificacion_id': notificacion['id']
+        })
+        
+    except Exception as e:
+        print(f"Error en notificación: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# Nuevo endpoint para obtener notificaciones
+@app.route('/api/recepcion/notificaciones')
+def obtener_notificaciones_recepcion():
+    try:
+        # Devolver notificaciones no leídas primero
+        notificaciones_ordenadas = sorted(
+            [n for n in notificaciones_recepcion if not n['leida']],
+            key=lambda x: x['timestamp'],
+            reverse=True
+        )
+        
+        # Agregar algunas notificaciones leídas recientes
+        notificaciones_leidas = sorted(
+            [n for n in notificaciones_recepcion if n['leida']],
+            key=lambda x: x['timestamp'],
+            reverse=True
+        )[:5]  # Máximo 5 notificaciones leídas
+        
+        todas_notificaciones = notificaciones_ordenadas + notificaciones_leidas
+        
+        return jsonify({
+            'success': True,
+            'notificaciones': todas_notificaciones,
+            'total_no_leidas': len(notificaciones_ordenadas)
+        })
+        
+    except Exception as e:
+        print(f"Error obteniendo notificaciones: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# Endpoint para marcar notificación como leída
+@app.route('/api/recepcion/notificaciones/<int:notificacion_id>/leer', methods=['PUT'])
+def marcar_notificacion_leida(notificacion_id):
+    try:
+        for notificacion in notificaciones_recepcion:
+            if notificacion['id'] == notificacion_id:
+                notificacion['leida'] = True
+                return jsonify({'success': True})
+        
+        return jsonify({'success': False, 'error': 'Notificación no encontrada'}), 404
+        
+    except Exception as e:
+        print(f"Error marcando notificación como leída: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+    
+    # Endpoint para eliminar todas las notificaciones
+@app.route('/api/recepcion/notificaciones/limpiar-todas', methods=['DELETE'])
+def limpiar_todas_notificaciones():
+    try:
+        # Contar cuántas se van a eliminar
+        cantidad_eliminadas = len(notificaciones_recepcion)
+        
+        # Limpiar todas las notificaciones
+        notificaciones_recepcion.clear()
+        
+        print(f"🗑️ Se limpiaron {cantidad_eliminadas} notificaciones")
+        return jsonify({
+            'success': True, 
+            'message': f'Se limpiaron {cantidad_eliminadas} notificaciones',
+            'eliminadas': cantidad_eliminadas
+        })
+        
+    except Exception as e:
+        print(f"Error limpiando notificaciones: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# Endpoint para eliminar una notificación específica
+@app.route('/api/recepcion/notificaciones/<int:notificacion_id>', methods=['DELETE'])
+def eliminar_notificacion(notificacion_id):
+    try:
+        # Buscar la notificación
+        for i, notificacion in enumerate(notificaciones_recepcion):
+            if notificacion['id'] == notificacion_id:
+                # Eliminar la notificación
+                notificacion_eliminada = notificaciones_recepcion.pop(i)
+                print(f"🗑️ Notificación eliminada: {notificacion_eliminada['mensaje']}")
+                return jsonify({
+                    'success': True, 
+                    'message': 'Notificación eliminada'
+                })
+        
+        return jsonify({'success': False, 'error': 'Notificación no encontrada'}), 404
+        
+    except Exception as e:
+        print(f"Error eliminando notificación: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+    return jsonify({'success': True, 'message': 'Notificación recibida'})
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

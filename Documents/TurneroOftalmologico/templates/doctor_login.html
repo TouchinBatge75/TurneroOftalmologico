@@ -188,6 +188,7 @@
         document.addEventListener('DOMContentLoaded', function() {
             cargarConsultorios();
             cargarDoctores();
+            setInterval(cargarDoctores, 10000);
         });
 
         let consultorioSeleccionado = null;
