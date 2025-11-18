@@ -175,15 +175,6 @@ def get_todos_doctores():
     conn.close()
     return jsonify([dict(d) for d in doctores])
 
-# API: Cambiar estado de doctor
-@app.route('/api/doctores/<int:doctor_id>/estado', methods=['PUT'])
-def cambiar_estado_doctor(doctor_id):
-    data = request.json
-    conn = get_db_connection()
-    conn.execute('UPDATE doctores SET activo = ? WHERE id = ?', (data['activo'], doctor_id))
-    conn.commit()
-    conn.close()
-    return jsonify({'success': True})
 
 # API: Agregar nuevo doctor
 @app.route('/api/doctores/nuevo', methods=['POST'])
@@ -191,9 +182,9 @@ def agregar_doctor():
     data = request.json
     conn = get_db_connection()
     conn.execute('''
-        INSERT INTO doctores (nombre, especialidad, activo)
-        VALUES (?, ?, ?)
-    ''', (data['nombre'], data['especialidad'], data['activo']))
+        INSERT INTO doctores (nombre, especialidad)
+        VALUES (?, ?)
+    ''', (data['nombre'], data['especialidad']))
     conn.commit()
     conn.close()
     return jsonify({'success': True})
@@ -203,10 +194,11 @@ def agregar_doctor():
 def eliminar_doctor(doctor_id):
     conn = get_db_connection()
     
-    turnos_activos = conn.execute(
-        'SELECT COUNT(*) as count FROM turnos WHERE doctor_asignado = ? AND estado != "FINALIZADO"',
-        (doctor_id,)
-    ).fetchone()['count']
+    turnos_activos = conn.execute('''
+        SELECT COUNT(*) as count FROM turnos 
+        WHERE doctor_asignado = ? AND estado IN ("PENDIENTE", "EN_ATENCION")
+    ''', (doctor_id,)).fetchone()
+
     
     if turnos_activos > 0:
         conn.close()
@@ -216,6 +208,156 @@ def eliminar_doctor(doctor_id):
         })
     
     conn.execute('DELETE FROM doctores WHERE id = ?', (doctor_id,))
+    conn.commit()
+    conn.close()
+    
+    return jsonify({'success': True})
+
+@app.route('/doctor-login')
+def doctor_login_page():
+    return render_template('doctor_login.html')
+
+# Ruta para el login de doctores
+@app.route('/api/doctor/login', methods=['POST'])
+def doctor_login():
+    data = request.json
+    conn = get_db_connection()
+    
+    try:
+        # Actualizar estado del doctor a ACTIVO
+        conn.execute('UPDATE doctores SET activo = 1 WHERE id = ?', (data['doctor_id'],))
+        
+        # Obtener nombre del doctor para la respuesta
+        doctor = conn.execute('SELECT nombre FROM doctores WHERE id = ?', (data['doctor_id'],)).fetchone()
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True, 
+            'doctor_nombre': doctor['nombre'],
+            'message': 'Sesión iniciada correctamente'
+        })
+        
+    except Exception as e:
+        print(f"Error en login doctor: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/doctor-dashboard')
+def doctor_dashboard():
+    return render_template('doctor_dashboard.html')
+
+# API para obtener turnos del doctor
+@app.route('/api/doctor/turnos')
+def get_turnos_doctor():
+    doctor_id = request.args.get('doctor_id')
+    conn = get_db_connection()
+    
+    turnos = conn.execute('''
+        SELECT t.*, e.nombre as estacion_actual_nombre
+        FROM turnos t
+        LEFT JOIN estaciones e ON t.estacion_actual = e.id
+        WHERE t.doctor_asignado = ? AND t.estado = "PENDIENTE"
+        ORDER BY t.timestamp_creacion ASC
+    ''', (doctor_id,)).fetchall()
+    
+    conn.close()
+    return jsonify([dict(turno) for turno in turnos])
+
+# API para llamar siguiente paciente
+@app.route('/api/doctor/llamar-siguiente', methods=['POST'])
+def llamar_siguiente_paciente():
+    data = request.json
+    doctor_id = data.get('doctor_id')
+    
+    conn = get_db_connection()
+    
+    # Obtener el siguiente turno en cola para este doctor
+    turno = conn.execute('''
+        SELECT t.*, e.nombre as estacion_actual_nombre
+        FROM turnos t
+        LEFT JOIN estaciones e ON t.estacion_actual = e.id
+        WHERE t.doctor_asignado = ? AND t.estado = "PENDIENTE"
+        ORDER BY t.timestamp_creacion ASC
+        LIMIT 1
+    ''', (doctor_id,)).fetchone()
+    
+    if not turno:
+        conn.close()
+        return jsonify({'success': False, 'error': 'No hay pacientes en espera'})
+    
+    # Actualizar estado del turno a "EN_ATENCION"
+    conn.execute('''
+        UPDATE turnos 
+        SET estado = "EN_ATENCION", timestamp_atencion = CURRENT_TIMESTAMP
+        WHERE id = ?
+    ''', (turno['id'],))
+    
+    conn.commit()
+    conn.close()
+    
+    return jsonify({
+        'success': True, 
+        'turno': dict(turno)
+    })
+
+# API para cambiar estado del doctor
+@app.route('/api/doctor/cambiar-estado', methods=['POST'])
+def cambiar_estado_doctor():
+    data = request.json
+    doctor_id = data.get('doctor_id')
+    estado = data.get('estado')
+    
+    conn = get_db_connection()
+    
+    # Convertir estado a valor activo/inactivo
+    activo = 1 if estado in ['DISPONIBLE', 'EN_CONSULTA'] else 0
+    
+    conn.execute('''
+        UPDATE doctores 
+        SET activo = ?
+        WHERE id = ?
+    ''', (activo, doctor_id))
+    
+    conn.commit()
+    conn.close()
+    
+    return jsonify({'success': True})
+
+# API para finalizar consulta
+@app.route('/api/doctor/finalizar-consulta', methods=['POST'])
+def finalizar_consulta():
+    data = request.json
+    turno_id = data.get('turno_id')
+    destino = data.get('destino')
+    vuelve_conmigo = data.get('vuelve_conmigo', False)
+    notas = data.get('notas', '')
+    
+    conn = get_db_connection()
+    
+    # Mapear destino a estación
+    destinos = {
+        'FARMACIA': 5,
+        'ASESORIA_VISUAL': 6,
+        'ESTUDIOS_ESPECIALES': 7,
+        'SALIDA': 8
+    }
+    
+    estacion_destino = destinos.get(destino, 8)  # Por defecto salida
+    
+    # Actualizar turno
+    conn.execute('''
+        UPDATE turnos 
+        SET estado = "FINALIZADO", 
+            estacion_actual = ?,
+            tiempo_total = CAST((julianday('now') - julianday(timestamp_atencion)) * 24 * 60 AS INTEGER)
+        WHERE id = ?
+    ''', (estacion_destino, turno_id))
+    
+    # Registrar en historial
+    registrar_historial(turno_id, 'FINALIZADO', 
+                       f'Destino: {destino}, Vuelve: {vuelve_conmigo}, Notas: {notas}')
+    
     conn.commit()
     conn.close()
     

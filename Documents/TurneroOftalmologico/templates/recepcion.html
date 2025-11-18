@@ -304,67 +304,7 @@
             font-size: 14px;
             margin-top: 5px;
         }
-
-        .doctor-estado {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .estado-activo {
-            color: #28a745;
-            font-weight: bold;
-        }
-
-        .estado-inactivo {
-            color: #dc3545;
-            font-weight: bold;
-        }
-
-        .switch {
-            position: relative;
-            display: inline-block;
-            width: 60px;
-            height: 34px;
-        }
-
-        .switch input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
-
-        .slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: #ccc;
-            transition: .4s;
-            border-radius: 34px;
-        }
-
-        .slider:before {
-            position: absolute;
-            content: "";
-            height: 26px;
-            width: 26px;
-            left: 4px;
-            bottom: 4px;
-            background-color: white;
-            transition: .4s;
-            border-radius: 50%;
-        }
-
-        input:checked + .slider {
-            background-color: #28a745;
-        }
-
-        input:checked + .slider:before {
-            transform: translateX(26px);
-        }
+        
 
         .btn-eliminar {
             background-color: #dc3545;
@@ -628,17 +568,10 @@
                     <input type="text" id="nuevo_doctor_nombre" required placeholder="Ej: Dr. Juan Pérez">
                 </div>
                 
-                <div class="form-group">
-                    <label for="nuevo_doctor_especialidad">Especialidad/Consultorio:</label>
-                    <input type="text" id="nuevo_doctor_especialidad" required placeholder="Ej: Consultorio 1, Retina, etc.">
-                </div>
-                
-                <div class="form-group">
-                    <label for="nuevo_doctor_activo">Estado Inicial:</label>
-                    <select id="nuevo_doctor_activo">
-                        <option value="1">Activo (Disponible hoy)</option>
-                        <option value="0">Inactivo (No disponible)</option>
-                    </select>
+               <div class="form-group">
+                    <label for="nuevo_doctor_especialidad">Especialidad/Descripción:</label>
+                    <input type="text" id="nuevo_doctor_especialidad" required 
+                        placeholder="Ej: Retinólogo, Glaucoma, Cataratas, General">
                 </div>
                 
                 <button type="submit">Agregar Doctor</button>
@@ -725,7 +658,7 @@
             cargarTurnos();
             cargarDoctores();
             mostrarOpcionesEspecificas();
-            cargarVisorDoctores
+            cargarVisorDoctores();
         });
 
         // Cargar lista de doctores activos
@@ -1078,12 +1011,7 @@
                         <div class="doctor-card">
                             <div class="doctor-info">
                                 <div class="doctor-nombre">${doctor.nombre}</div>
-                                <div class="doctor-especialidad">${doctor.especialidad}</div>
-                                <div class="doctor-estado">
-                                    <span class="${doctor.activo ? 'estado-activo' : 'estado-inactivo'}">
-                                        ${doctor.activo ? '✅ Activo' : '❌ Inactivo'}
-                                    </span>
-                                </div>
+                                <div class="doctor-especialidad">${doctor.especialidad}</div>              
                             </div>
                             <button class="btn-eliminar" onclick="eliminarDoctor(${doctor.id})">🗑️ Eliminar</button>
                         </div>
@@ -1121,7 +1049,6 @@
                     const datos = {
                         nombre: document.getElementById('nuevo_doctor_nombre').value,
                         especialidad: document.getElementById('nuevo_doctor_especialidad').value,
-                        activo: document.getElementById('nuevo_doctor_activo').value === '1'
                     };
 
                     fetch('/api/doctores/nuevo', {
@@ -1342,27 +1269,21 @@
                     return;
                 }
 
-                // Ordenar: activos primero, luego inactivos
-                const doctoresOrdenados = [...doctores].sort((a, b) => {
-                    if (a.activo === b.activo) return a.nombre.localeCompare(b.nombre);
-                    return b.activo - a.activo;
-                });
 
-                contenedor.innerHTML = doctoresOrdenados.map(doctor => {
-                    const statusClass = doctor.activo ? 'activo' : 'inactivo';
-                    const statusIndicator = doctor.activo ? 'status-activo' : 'status-inactivo';
-                    const statusText = doctor.activo ? '🟢 Disponible' : '🔴 No disponible';
-                    
-                    return `
-                        <div class="doctor-status-card ${statusClass}">
-                            <div class="doctor-status-nombre">${doctor.nombre}</div>
-                            <div class="doctor-status-especialidad">${doctor.especialidad}</div>
-                            <div class="doctor-status-estado">
-                                <span class="status-indicator ${statusIndicator}"></span>
-                                ${statusText}
-                            </div>
+                contenedor.innerHTML = doctores.map(doctor => {
+                const estaDisponible = doctor.activo === 1;
+                const statusClass = estaDisponible ? 'activo' : 'inactivo';
+                const statusText = estaDisponible ? '🟢 Disponible' : '🔴 No disponible';
+                
+                return `
+                    <div class="doctor-status-card ${statusClass}">
+                        <div class="doctor-status-nombre">${doctor.nombre}</div>
+                        <div class="doctor-status-especialidad">${doctor.especialidad}</div>
+                        <div class="doctor-status-estado">
+                            ${statusText}
                         </div>
-                    `;
+                    </div>
+                `;
                 }).join('') + `
                     <div class="ultima-actualizacion">
                         Actualizado: ${new Date().toLocaleTimeString()}

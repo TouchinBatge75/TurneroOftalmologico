@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Doctor - Sistema de Turnos</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .login-container {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            width: 90%;
+            max-width: 500px;
+            text-align: center;
+        }
+
+        .hospital-logo {
+            font-size: 3em;
+            margin-bottom: 10px;
+        }
+
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 5px;
+            font-size: 24px;
+        }
+
+        .subtitle {
+            color: #7f8c8d;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #2c3e50;
+            font-weight: 600;
+        }
+
+        select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e1e8ed;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        .consultorios-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .consultorio-btn {
+            padding: 12px;
+            border: 2px solid #e1e8ed;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+
+        .consultorio-btn:hover {
+            border-color: #3498db;
+            background: #f8f9fa;
+        }
+
+        .consultorio-btn.selected {
+            border-color: #2ecc71;
+            background: #2ecc71;
+            color: white;
+        }
+
+        .login-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 30px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-disponible {
+            background: #2ecc71;
+            color: white;
+        }
+
+        .btn-consulta {
+            background: #f39c12;
+            color: white;
+        }
+
+        .btn-ausente {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .loading {
+            display: none;
+            margin-top: 20px;
+            color: #7f8c8d;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="hospital-logo">👨‍⚕️</div>
+        <h1>Sistema de Turnos - Doctores</h1>
+        <p class="subtitle">Identifíquese para comenzar</p>
+
+        <div class="form-group">
+            <label>📍 Consultorio actual:</label>
+            <div class="consultorios-grid" id="consultoriosGrid">
+                <!-- Los consultorios se cargarán dinámicamente -->
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="doctorSelect">👤 Seleccione su nombre:</label>
+            <select id="doctorSelect">
+                <option value="">-- Seleccione doctor --</option>
+                <!-- Los doctores se cargarán dinámicamente -->
+            </select>
+        </div>
+
+        <div class="login-buttons">
+            <button class="btn btn-disponible" onclick="hacerLogin('DISPONIBLE')">
+                🟢 Disponible
+            </button>
+            <button class="btn btn-consulta" onclick="hacerLogin('EN_CONSULTA')">
+                🟡 En Consulta
+            </button>
+            <button class="btn btn-ausente" onclick="hacerLogin('AUSENTE')">
+                🔴 Ausente
+            </button>
+        </div>
+
+        <div class="loading" id="loading">
+            Iniciando sesión...
+        </div>
+    </div>
+
+    <script>
+        // Cargar consultorios y doctores al iniciar
+        document.addEventListener('DOMContentLoaded', function() {
+            cargarConsultorios();
+            cargarDoctores();
+        });
+
+        let consultorioSeleccionado = null;
+        let doctorSeleccionado = null;
+
+        function cargarConsultorios() {
+            const consultorios = [
+                { id: 1, nombre: 'Consultorio 1' },
+                { id: 2, nombre: 'Consultorio 2' },
+                { id: 3, nombre: 'Consultorio 3' },
+                { id: 4, nombre: 'Consultorio 4' }
+            ];
+
+            const grid = document.getElementById('consultoriosGrid');
+            grid.innerHTML = '';
+
+            consultorios.forEach(consultorio => {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'consultorio-btn';
+                button.textContent = consultorio.nombre;
+                button.onclick = () => seleccionarConsultorio(consultorio.id, button);
+                grid.appendChild(button);
+            });
+        }
+
+        function seleccionarConsultorio(consultorioId, button) {
+            // Remover selección anterior
+            document.querySelectorAll('.consultorio-btn').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+
+            // Marcar como seleccionado
+            button.classList.add('selected');
+            consultorioSeleccionado = consultorioId;
+        }
+
+        function cargarDoctores() {
+            fetch('/api/doctores/todos')
+                .then(response => response.json())
+                .then(doctores => {
+                    const select = document.getElementById('doctorSelect');
+                    select.innerHTML = '<option value="">-- Seleccione doctor --</option>';
+                    
+                    doctores.forEach(doctor => {
+                        const option = document.createElement('option');
+                        option.value = doctor.id;
+                        option.textContent = doctor.nombre + (doctor.especialidad ? ` - ${doctor.especialidad}` : '');
+                        select.appendChild(option);
+                    });
+
+                    select.onchange = function() {
+                        doctorSeleccionado = this.value;
+                    };
+                })
+                .catch(error => {
+                    console.error('Error cargando doctores:', error);
+                });
+        }
+
+        function hacerLogin(estado) {
+            if (!consultorioSeleccionado) {
+                alert('Por favor seleccione un consultorio');
+                return;
+            }
+
+            if (!doctorSeleccionado) {
+                alert('Por favor seleccione su nombre');
+                return;
+            }
+
+            // Mostrar loading
+            document.getElementById('loading').style.display = 'block';
+
+            const datos = {
+                doctor_id: doctorSeleccionado,
+                consultorio: consultorioSeleccionado,
+                estado: estado
+            };
+
+            // Actualizar estado del doctor en el sistema
+            fetch('/api/doctor/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(datos)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Guardar sesión en localStorage
+                    localStorage.setItem('doctor_session', JSON.stringify({
+                        doctor_id: doctorSeleccionado,
+                        doctor_nombre: data.doctor_nombre,
+                        consultorio: consultorioSeleccionado,
+                        estado: estado,
+                        login_time: new Date().toISOString()
+                    }));
+
+                    // Redirigir al dashboard del doctor
+                    window.location.href = '/doctor-dashboard';
+                } else {
+                    alert('Error al iniciar sesión: ' + (data.error || 'Error desconocido'));
+                    document.getElementById('loading').style.display = 'none';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error de conexión');
+                document.getElementById('loading').style.display = 'none';
+            });
+        }
+    </script>
+</body>
+</html>

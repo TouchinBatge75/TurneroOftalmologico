@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Doctor - Sistema de Turnos</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f6fa;
+            color: #2c3e50;
+        }
+
+        .dashboard-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .doctor-info h1 {
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .doctor-info .especialidad {
+            color: #7f8c8d;
+            font-size: 16px;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-disponible { background-color: #2ecc71; }
+        .status-consulta { background-color: #f39c12; }
+        .status-ausente { background-color: #e74c3c; }
+
+        .estado-actual {
+            background: #34495e;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+
+        .paneles-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .panel {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #ecf0f1;
+        }
+
+        .panel-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .badge {
+            background: #3498db;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .lista-turnos {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .turno-item {
+            padding: 15px;
+            border: 1px solid #ecf0f1;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .turno-item:hover {
+            border-color: #3498db;
+            background: #f8f9fa;
+        }
+
+        .turno-item.activo {
+            border-color: #2ecc71;
+            background: #f8fff9;
+        }
+
+        .turno-numero {
+            font-weight: bold;
+            font-size: 16px;
+            color: #2c3e50;
+        }
+
+        .turno-paciente {
+            color: #7f8c8d;
+            margin: 5px 0;
+        }
+
+        .turno-detalles {
+            font-size: 12px;
+            color: #95a5a6;
+        }
+
+        .acciones-principales {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .btn-principal {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 20px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-principal:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .btn-llamar {
+            background: linear-gradient(135deg, #2ecc71 0%, #1abc9c 100%);
+        }
+
+        .btn-pausar {
+            background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+        }
+
+        .btn-salir {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        }
+
+        .panel-atencion {
+            background: #fffdf4;
+            border: 2px solid #ffc107;
+        }
+
+        .paciente-actual {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .paciente-nombre {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .paciente-detalles {
+            color: #7f8c8d;
+            margin-bottom: 20px;
+        }
+
+        .tiempo-consulta {
+            font-size: 14px;
+            color: #95a5a6;
+            margin-bottom: 20px;
+        }
+
+        .contador-tiempo {
+            font-size: 18px;
+            font-weight: bold;
+            color: #e74c3c;
+        }
+
+        .destinos-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn-destino {
+            background: white;
+            border: 2px solid #3498db;
+            color: #3498db;
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        .btn-destino:hover {
+            background: #3498db;
+            color: white;
+        }
+
+        .checkbox-vuelve {
+            margin: 15px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .checkbox-vuelve input {
+            width: auto;
+        }
+
+        .notas-consulta {
+            width: 100%;
+            height: 80px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin: 10px 0;
+            resize: vertical;
+        }
+
+        .btn-finalizar {
+            background: #2ecc71;
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.3s;
+        }
+
+        .btn-finalizar:hover {
+            background: #27ae60;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #7f8c8d;
+        }
+
+        .sin-turnos {
+            text-align: center;
+            padding: 40px;
+            color: #bdc3c7;
+        }
+
+        /* Scrollbar personalizado */
+        .lista-turnos::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .lista-turnos::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+
+        .lista-turnos::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 3px;
+        }
+
+        .lista-turnos::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="doctor-info">
+                <h1 id="doctorNombre">👨‍⚕️ Cargando...</h1>
+                <div class="especialidad" id="doctorEspecialidad"></div>
+                <div class="estado-actual" id="estadoActual">
+                    <span class="status-indicator status-disponible"></span>
+                    <span id="estadoTexto">Cargando...</span>
+                </div>
+            </div>
+            <button class="btn-salir btn-principal" onclick="cerrarSesion()">🚪 Cerrar Sesión</button>
+        </div>
+
+        <!-- Acciones Principales -->
+        <div class="acciones-principales">
+            <button class="btn-llamar btn-principal" onclick="llamarSiguiente()">
+                🔄 Llamar Siguiente
+            </button>
+            <button class="btn-pausar btn-principal" onclick="cambiarEstado('EN_CONSULTA')">
+                ⏸️ Pausar Consulta
+            </button>
+            <button class="btn-salir btn-principal" onclick="cambiarEstado('AUSENTE')">
+                🔴 Marcar Ausente
+            </button>
+        </div>
+
+        <!-- Paneles Grid -->
+        <div class="paneles-grid">
+            <!-- Panel: Cola de Espera -->
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">📋 Cola de Espera</div>
+                    <div class="badge" id="contadorCola">0</div>
+                </div>
+                <div class="lista-turnos" id="colaEspera">
+                    <div class="loading">Cargando turnos...</div>
+                </div>
+            </div>
+
+            <!-- Panel: Atención Actual -->
+            <div class="panel panel-atencion" id="panelAtencion">
+                <div class="panel-header">
+                    <div class="panel-title">👤 Atención Actual</div>
+                    <div class="badge" style="background: #e74c3c;" id="tiempoBadge">0:00</div>
+                </div>
+                <div class="paciente-actual" id="pacienteActual">
+                    <div class="sin-turnos" id="sinAtencion">
+                        <div style="font-size: 48px; margin-bottom: 10px;">😴</div>
+                        <p>No hay paciente en consulta</p>
+                        <p style="font-size: 14px; margin-top: 10px;">Presiona "Llamar Siguiente" para comenzar</p>
+                    </div>
+                    <div class="atendiendo-paciente hidden" id="atendiendoPaciente">
+                        <div class="paciente-nombre" id="pacienteNombre"></div>
+                        <div class="paciente-detalles" id="pacienteDetalles"></div>
+                        <div class="tiempo-consulta">
+                            Tiempo en consulta: <span class="contador-tiempo" id="contadorTiempo">0:00</span>
+                        </div>
+                        
+                        <!-- Destinos -->
+                        <div class="destinos-grid">
+                            <button class="btn-destino" onclick="seleccionarDestino('FARMACIA')">💊 Farmacia</button>
+                            <button class="btn-destino" onclick="seleccionarDestino('ASESORIA_VISUAL')">👓 Asesoría</button>
+                            <button class="btn-destino" onclick="seleccionarDestino('ESTUDIOS_ESPECIALES')">🔬 Estudios</button>
+                            <button class="btn-destino" onclick="seleccionarDestino('SALIDA')">🏠 Salida</button>
+                        </div>
+
+                        <div class="checkbox-vuelve">
+                            <input type="checkbox" id="vuelveConmigo">
+                            <label for="vuelveConmigo">🔁 Vuelve conmigo después</label>
+                        </div>
+
+                        <textarea class="notas-consulta" id="notasConsulta" placeholder="Notas de la consulta..."></textarea>
+
+                        <button class="btn-finalizar" onclick="finalizarConsulta()">
+                            ✅ Finalizar Consulta
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let sesionDoctor = null;
+        let pacienteActual = null;
+        let tiempoInicioConsulta = null;
+        let intervaloContador = null;
+
+        // Cargar datos al iniciar
+        document.addEventListener('DOMContentLoaded', function() {
+            cargarSesion();
+            cargarTurnosDoctor();
+            setInterval(cargarTurnosDoctor, 5000); // Actualizar cada 5 segundos
+        });
+
+        function cargarSesion() {
+            const sesion = localStorage.getItem('doctor_session');
+            if (!sesion) {
+                window.location.href = '/doctor-login';
+                return;
+            }
+
+            sesionDoctor = JSON.parse(sesion);
+            document.getElementById('doctorNombre').textContent = `👨‍⚕️ ${sesionDoctor.doctor_nombre}`;
+            document.getElementById('estadoTexto').textContent = formatearEstado(sesionDoctor.estado);
+            actualizarIndicadorEstado(sesionDoctor.estado);
+        }
+
+        function formatearEstado(estado) {
+            const estados = {
+                'DISPONIBLE': 'Disponible',
+                'EN_CONSULTA': 'En Consulta', 
+                'AUSENTE': 'Ausente'
+            };
+            return estados[estado] || estado;
+        }
+
+        function actualizarIndicadorEstado(estado) {
+            const indicador = document.querySelector('.status-indicator');
+            indicador.className = 'status-indicator';
+            
+            if (estado === 'DISPONIBLE') indicador.classList.add('status-disponible');
+            else if (estado === 'EN_CONSULTA') indicador.classList.add('status-consulta');
+            else if (estado === 'AUSENTE') indicador.classList.add('status-ausente');
+        }
+
+        function cargarTurnosDoctor() {
+            if (!sesionDoctor) return;
+
+            fetch(`/api/doctor/turnos?doctor_id=${sesionDoctor.doctor_id}`)
+                .then(response => response.json())
+                .then(turnos => {
+                    mostrarColaEspera(turnos);
+                })
+                .catch(error => {
+                    console.error('Error cargando turnos:', error);
+                });
+        }
+
+        function mostrarColaEspera(turnos) {
+            const contenedor = document.getElementById('colaEspera');
+            const contador = document.getElementById('contadorCola');
+            
+            if (turnos.length === 0) {
+                contenedor.innerHTML = '<div class="sin-turnos">No hay pacientes en espera</div>';
+                contador.textContent = '0';
+                return;
+            }
+
+            contador.textContent = turnos.length.toString();
+            
+            contenedor.innerHTML = turnos.map(turno => `
+                <div class="turno-item ${turno.id === (pacienteActual?.id) ? 'activo' : ''}" 
+                     onclick="seleccionarTurno(${turno.id})">
+                    <div class="turno-numero">${turno.numero}</div>
+                    <div class="turno-paciente">${turno.paciente_nombre} (${turno.paciente_edad} años)</div>
+                    <div class="turno-detalles">
+                        ${turno.tipo === 'CITA' ? 'Con cita' : 'Sin cita'} • 
+                        ${turno.tiempo_espera || 'Recién llegado'}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function seleccionarTurno(turnoId) {
+            // Aquí podrías implementar selección manual si es necesario
+            console.log('Turno seleccionado:', turnoId);
+        }
+
+        function llamarSiguiente() {
+            if (!sesionDoctor) return;
+
+            fetch('/api/doctor/llamar-siguiente', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    doctor_id: sesionDoctor.doctor_id
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    if (data.turno) {
+                        comenzarAtencion(data.turno);
+                    } else {
+                        alert('No hay pacientes en espera');
+                    }
+                } else {
+                    alert('Error: ' + (data.error || 'No se pudo llamar siguiente'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error de conexión');
+            });
+        }
+
+        function comenzarAtencion(turno) {
+            pacienteActual = turno;
+            tiempoInicioConsulta = new Date();
+            
+            // Mostrar panel de atención
+            document.getElementById('sinAtencion').classList.add('hidden');
+            document.getElementById('atendiendoPaciente').classList.remove('hidden');
+            
+            // Actualizar información del paciente
+            document.getElementById('pacienteNombre').textContent = turno.paciente_nombre;
+            document.getElementById('pacienteDetalles').textContent = 
+                `${turno.paciente_edad} años • ${turno.tipo === 'CITA' ? 'Con cita' : 'Sin cita'}`;
+            
+            // Iniciar contador
+            iniciarContadorTiempo();
+            
+            // Cambiar estado del doctor
+            cambiarEstado('EN_CONSULTA');
+        }
+
+        function iniciarContadorTiempo() {
+            if (intervaloContador) clearInterval(intervaloContador);
+            
+            intervaloContador = setInterval(() => {
+                if (!tiempoInicioConsulta) return;
+                
+                const ahora = new Date();
+                const diferencia = Math.floor((ahora - tiempoInicioConsulta) / 1000); // segundos
+                const minutos = Math.floor(diferencia / 60);
+                const segundos = diferencia % 60;
+                
+                const tiempoFormateado = `${minutos}:${segundos.toString().padStart(2, '0')}`;
+                document.getElementById('contadorTiempo').textContent = tiempoFormateado;
+                document.getElementById('tiempoBadge').textContent = tiempoFormateado;
+            }, 1000);
+        }
+
+        function seleccionarDestino(destino) {
+            // Aquí guardaríamos el destino seleccionado temporalmente
+            console.log('Destino seleccionado:', destino);
+            // Podrías mostrar visualmente cuál está seleccionado
+        }
+
+        function finalizarConsulta() {
+            if (!pacienteActual) return;
+
+            const destino = 'FARMACIA'; // Por ahora fijo, luego se selecciona
+            const vuelveConmigo = document.getElementById('vuelveConmigo').checked;
+            const notas = document.getElementById('notasConsulta').value;
+
+            fetch('/api/doctor/finalizar-consulta', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    turno_id: pacienteActual.id,
+                    destino: destino,
+                    vuelve_conmigo: vuelveConmigo,
+                    notas: notas,
+                    doctor_id: sesionDoctor.doctor_id
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    terminarAtencion();
+                    cargarTurnosDoctor();
+                    alert('Consulta finalizada correctamente');
+                } else {
+                    alert('Error: ' + (data.error || 'No se pudo finalizar consulta'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error de conexión');
+            });
+        }
+
+        function terminarAtencion() {
+            pacienteActual = null;
+            tiempoInicioConsulta = null;
+            
+            if (intervaloContador) {
+                clearInterval(intervaloContador);
+                intervaloContador = null;
+            }
+            
+            document.getElementById('sinAtencion').classList.remove('hidden');
+            document.getElementById('atendiendoPaciente').classList.add('hidden');
+            document.getElementById('notasConsulta').value = '';
+            document.getElementById('vuelveConmigo').checked = false;
+            document.getElementById('contadorTiempo').textContent = '0:00';
+            document.getElementById('tiempoBadge').textContent = '0:00';
+            
+            cambiarEstado('DISPONIBLE');
+        }
+
+        function cambiarEstado(nuevoEstado) {
+            if (!sesionDoctor) return;
+
+            fetch('/api/doctor/cambiar-estado', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    doctor_id: sesionDoctor.doctor_id,
+                    estado: nuevoEstado
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    sesionDoctor.estado = nuevoEstado;
+                    document.getElementById('estadoTexto').textContent = formatearEstado(nuevoEstado);
+                    actualizarIndicadorEstado(nuevoEstado);
+                    
+                    if (nuevoEstado === 'AUSENTE') {
+                        // Si se marca como ausente, terminar atención actual
+                        terminarAtencion();
+                    }
+                } else {
+                    alert('Error al cambiar estado');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error de conexión');
+            });
+        }
+
+        function cerrarSesion() {
+            if (confirm('¿Estás seguro de que quieres cerrar sesión?')) {
+                if (pacienteActual) {
+                    if (!confirm('Tienes un paciente en consulta. ¿Seguro que quieres cerrar sesión?')) {
+                        return;
+                    }
+                }
+                
+                // Marcar como ausente al cerrar sesión
+                cambiarEstado('AUSENTE');
+                
+                // Limpiar localStorage y redirigir
+                localStorage.removeItem('doctor_session');
+                window.location.href = '/doctor-login';
+            }
+        }
+    </script>
+</body>
+</html>
