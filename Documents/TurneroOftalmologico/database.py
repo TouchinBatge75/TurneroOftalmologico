@@ -23,7 +23,21 @@ def init_db():
             )
         ''')
         print("✅ Tabla 'doctores' creada")
-        
+
+
+        #Tabla de Consultorios
+        conn.execute('''
+                CREATE TABLE IF NOT EXISTS consultorios (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    numero TEXT NOT NULL UNIQUE,
+                    ocupado BOOLEAN DEFAULT 0,
+                    doctor_actual INTEGER,
+                    timestamp_ocupado DATETIME,
+                    FOREIGN KEY (doctor_actual) REFERENCES doctores (id)
+                )
+            ''')
+
+
         # Tabla de estaciones
         conn.execute('''
             CREATE TABLE IF NOT EXISTS estaciones (
@@ -84,12 +98,26 @@ def init_db():
             ('Estudios Especiales', 'Exámenes especializados'),
             ('Salida', 'Final del proceso')
         ]
+
+        consultorios = [
+            ('Consultorio 1',),
+            ('Consultorio 2',),
+            ('Consultorio 3',), 
+            ('Consultorio 4',),
+            ('Consultorio 5',)
+        ]
         
         conn.executemany(
             'INSERT OR IGNORE INTO estaciones (nombre, descripcion) VALUES (?, ?)',
             estaciones
         )
         print("✅ 8 estaciones insertadas")
+
+        conn.executemany(
+            'INSERT OR IGNORE INTO consultorios (numero) VALUES (?)',
+            consultorios
+        )
+        print("✅ 5 consultorios insertados")
         
         # NO insertar doctores - la tabla estará vacía
         print("ℹ️  Tabla de doctores creada vacía - agrega doctores desde la interfaz")

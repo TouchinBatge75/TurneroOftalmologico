@@ -649,21 +649,58 @@
         }
 
         function cerrarSesion() {
-            if (confirm('¿Estás seguro de que quieres cerrar sesión?')) {
-                if (pacienteActual) {
-                    if (!confirm('Tienes un paciente en consulta. ¿Seguro que quieres cerrar sesión?')) {
-                        return;
-                    }
-                }
-                
-                // Marcar como ausente al cerrar sesión
-                cambiarEstado('AUSENTE');
-                
-                // Limpiar localStorage y redirigir
-                localStorage.removeItem('doctor_session');
-                window.location.href = '/doctor-login';
+    if (confirm('¿Estás seguro de que quieres cerrar sesión?')) {
+        if (pacienteActual) {
+            if (!confirm('Tienes un paciente en consulta. ¿Seguro que quieres cerrar sesión?')) {
+                return;
             }
         }
+        
+        // Liberar el consultorio
+        fetch(`/api/consultorios/${sesionDoctor.consultorio_id}/liberar`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                doctor_id: sesionDoctor.doctor_id
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Consultorio liberado:', data);
+            
+            // Marcar como AUSENTE
+            return fetch('/api/doctor/cambiar-estado', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    doctor_id: sesionDoctor.doctor_id,
+                    estado: 'AUSENTE'
+                })
+            });
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Estado actualizado a AUSENTE');
+            
+            // Limpiar y redirigir
+            localStorage.removeItem('doctor_session');
+            window.location.href = '/doctor-login';
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            // Redirigir de todas formas
+            localStorage.removeItem('doctor_session');
+            window.location.href = '/doctor-login';
+        });
+    }
+}
+
+        
+
 
         //Llamar a Recepcion
         function llamarRecepcion() {

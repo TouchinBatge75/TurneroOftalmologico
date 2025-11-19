@@ -269,6 +269,30 @@ def get_turnos_doctor():
     conn.close()
     return jsonify([dict(turno) for turno in turnos])
 
+# API para forzar estado de todos los doctores (útil para limpieza)
+@app.route('/api/doctores/forzar-ausentes', methods=['POST'])
+def forzar_doctores_ausentes():
+    try:
+        conn = get_db_connection()
+        
+        # Poner TODOS los doctores como ausentes
+        conn.execute('UPDATE doctores SET activo = 0, estado_detallado = "AUSENTE"')
+        
+        # Contar cuántos se actualizaron
+        count = conn.execute('SELECT changes()').fetchone()[0]
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True, 
+            'message': f'Se actualizaron {count} doctores a estado AUSENTE'
+        })
+        
+    except Exception as e:
+        print(f"Error forzando estado ausente: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 # API para llamar siguiente paciente
 @app.route('/api/doctor/llamar-siguiente', methods=['POST'])
 def llamar_siguiente_paciente():
@@ -329,6 +353,97 @@ def cambiar_estado_doctor():
     
     return jsonify({'success': True})
 
+
+# API para obtener consultorios
+@app.route('/api/consultorios')
+def get_consultorios():
+    conn = get_db_connection()
+    consultorios = conn.execute('''
+        SELECT c.*, d.nombre as doctor_nombre 
+        FROM consultorios c 
+        LEFT JOIN doctores d ON c.doctor_actual = d.id 
+        ORDER BY c.numero
+    ''').fetchall()
+    conn.close()
+    return jsonify([dict(c) for c in consultorios])
+
+# API para ocupar un consultorio
+@app.route('/api/consultorios/<int:consultorio_id>/ocupar', methods=['POST'])
+def ocupar_consultorio(consultorio_id):
+    data = request.json
+    doctor_id = data.get('doctor_id')
+    
+    conn = get_db_connection()
+    
+    try:
+        # Verificar si el consultorio ya está ocupado
+        consultorio = conn.execute(
+            'SELECT ocupado FROM consultorios WHERE id = ?', 
+            (consultorio_id,)
+        ).fetchone()
+        
+        if consultorio and consultorio['ocupado']:
+            conn.close()
+            return jsonify({
+                'success': False, 
+                'error': 'Este consultorio ya está ocupado'
+            })
+        
+        # Ocupar el consultorio
+        conn.execute('''
+            UPDATE consultorios 
+            SET ocupado = 1, doctor_actual = ?, timestamp_ocupado = CURRENT_TIMESTAMP
+            WHERE id = ?
+        ''', (doctor_id, consultorio_id))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'success': True, 'message': 'Consultorio ocupado correctamente'})
+        
+    except Exception as e:
+        print(f"Error ocupando consultorio: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# API para liberar un consultorio
+@app.route('/api/consultorios/<int:consultorio_id>/liberar', methods=['POST'])
+def liberar_consultorio(consultorio_id):
+    data = request.json
+    doctor_id = data.get('doctor_id')
+    
+    conn = get_db_connection()
+    
+    try:
+        # Verificar que el doctor sea el que ocupa el consultorio
+        consultorio = conn.execute(
+            'SELECT doctor_actual FROM consultorios WHERE id = ?', 
+            (consultorio_id,)
+        ).fetchone()
+        
+        if consultorio and consultorio['doctor_actual'] != doctor_id:
+            conn.close()
+            return jsonify({
+                'success': False, 
+                'error': 'No puedes liberar un consultorio que no estás ocupando'
+            })
+        
+        # Liberar el consultorio
+        conn.execute('''
+            UPDATE consultorios 
+            SET ocupado = 0, doctor_actual = NULL, timestamp_ocupado = NULL
+            WHERE id = ?
+        ''', (consultorio_id,))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'success': True, 'message': 'Consultorio liberado correctamente'})
+        
+    except Exception as e:
+        print(f"Error liberando consultorio: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+    
+    
 # API para finalizar consulta
 @app.route('/api/doctor/finalizar-consulta', methods=['POST'])
 def finalizar_consulta():
