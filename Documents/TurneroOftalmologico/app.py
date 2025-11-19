@@ -43,7 +43,7 @@ def get_turnos():
 @app.route('/api/doctores')
 def get_doctores():
     conn = get_db_connection()
-    doctores = conn.execute('SELECT * FROM doctores WHERE activo = 1').fetchall()
+    doctores = conn.execute('SELECT * FROM doctores WHERE activo = 1 ORDER BY nombre' ).fetchall()
     conn.close()
     return jsonify([dict(d) for d in doctores])
 
@@ -184,8 +184,8 @@ def agregar_doctor():
     data = request.json
     conn = get_db_connection()
     conn.execute('''
-        INSERT INTO doctores (nombre, especialidad)
-        VALUES (?, ?)
+       INSERT INTO doctores (nombre, especialidad, activo, estado_detallado)
+        VALUES (?, ?, 0, 'AUSENTE')
     ''', (data['nombre'], data['especialidad']))
     conn.commit()
     conn.close()

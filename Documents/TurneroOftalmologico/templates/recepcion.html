@@ -1287,43 +1287,49 @@
 
             // Función para mostrar los doctores en el visor
             function mostrarVisorDoctores(doctores) {
-                    const contenedor = document.getElementById('visorDoctores');
-                    
-                    if (doctores.length === 0) {
-                        contenedor.innerHTML = '<p>No hay doctores registrados</p>';
-                        return;
-                    }
+    const contenedor = document.getElementById('visorDoctores');
+    
+    if (doctores.length === 0) {
+        contenedor.innerHTML = '<p>No hay doctores registrados</p>';
+        return;
+    }
 
-                     contenedor.innerHTML = doctores.map(doctor => {
-                        const estado = doctor.estado_detallado || (doctor.activo ? 'DISPONIBLE' : 'AUSENTE');        
-                        let statusClass, statusText;
-                        
-                        if (estado === 'DISPONIBLE') {
-                            statusClass = 'activo';
-                            statusText = '🟢 Disponible';
-                        } else if (estado === 'EN_CONSULTA') {
-                            statusClass = 'ocupado';
-                            statusText = '🟡 En Consulta';
-                        } else { // AUSENTE o cualquier otro
-                            statusClass = 'inactivo';
-                            statusText = '🔴 No disponible';
-                        }
-                        
-                        return `
-                            <div class="doctor-status-card ${statusClass}">
-                                <div class="doctor-status-nombre">${doctor.nombre}</div>
-                                <div class="doctor-status-especialidad">${doctor.especialidad}</div>
-                                <div class="doctor-status-estado">
-                                    ${statusText}
-                                </div>
-                            </div>
-                        `;
-                }).join('') + `
-                    <div class="ultima-actualizacion">
-                        Actualizado: ${new Date().toLocaleTimeString()}
-                    </div>
-                `;
-            }
+    contenedor.innerHTML = doctores.map(doctor => {
+        // VERIFICAR CORRECTAMENTE EL ESTADO
+        const estaActivo = doctor.activo === 1;
+        const estado = doctor.estado_detallado || (estaActivo ? 'DISPONIBLE' : 'AUSENTE');
+        
+        let statusClass, statusText, statusIcon;
+        
+        if (estado === 'DISPONIBLE') {
+            statusClass = 'activo';
+            statusText = '🟢 Disponible';
+            statusIcon = '🟢';
+        } else if (estado === 'EN_CONSULTA') {
+            statusClass = 'ocupado';
+            statusText = '🟡 En Consulta';
+            statusIcon = '🟡';
+        } else {
+            statusClass = 'inactivo';
+            statusText = '🔴 Sin conexión';
+            statusIcon = '🔴';
+        }
+        
+        return `
+            <div class="doctor-status-card ${statusClass}">
+                <div class="doctor-status-nombre">${doctor.nombre}</div>
+                <div class="doctor-status-especialidad">${doctor.especialidad}</div>
+                <div class="doctor-status-estado">
+                    ${statusIcon} ${statusText}
+                </div>
+            </div>
+        `;
+    }).join('') + `
+        <div class="ultima-actualizacion">
+            Actualizado: ${new Date().toLocaleTimeString()}
+        </div>
+    `;
+}
 
             // Función para actualizar manualmente
             function actualizarEstadoDoctores() {
