@@ -101,6 +101,124 @@
             background-color: #138496;
         }
 
+        /* Estilos para Turnos en Tránsito */
+        .transito-card {
+            margin-top: 20px;
+            border-left: 4px solid #3498db !important;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .btn-refresh {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .btn-refresh:hover {
+            background: #2980b9;
+        }
+
+        .transito-container {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .turno-transito {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-left: 4px solid #3498db;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .turno-transito.alerta {
+            border-left-color: #e74c3c;
+            background: #fff5f5;
+        }
+
+        .transito-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .transito-numero {
+            font-weight: bold;
+            font-size: 1.1em;
+            color: #2c3e50;
+        }
+
+        .transito-tiempo {
+            background: #e74c3c;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+
+        .transito-tiempo.normal {
+            background: #27ae60;
+        }
+
+        .transito-paciente {
+            font-weight: 600;
+            color: #34495e;
+            margin-bottom: 5px;
+        }
+
+        .transito-detalles {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 5px;
+        }
+
+        .transito-estacion {
+            background: #3498db;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+        }
+
+        .transito-tipo {
+            background: #9b59b6;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+        }
+
+        .transito-tipo.retorno {
+            background: #e67e22;
+        }
+
+        .transito-doctor {
+            color: #7f8c8d;
+            font-size: 0.9em;
+            font-style: italic;
+        }
+
+        .sin-transito {
+            text-align: center;
+            color: #7f8c8d;
+            padding: 20px;
+            font-style: italic;
+        }
+
         /* Estilos para el modal */
         .modal {
             position: fixed;
@@ -525,6 +643,16 @@
                 <p>Cargando turnos...</p>
             </div>
         </div>
+        <!-- lista de turnos en viajes -->
+        <div class="card transito-card">
+            <div class="card-header">
+                <h3>🚀 Turnos en Tránsito</h3>
+                <button onclick="cargarTurnosEnTransito()" class="btn-refresh">🔄</button>
+            </div>
+            <div id="turnos-transito" class="transito-container">
+                <div class="loading">Cargando turnos en tránsito...</div>
+            </div>
+        </div>
     </div>
 
     <!-- Modal de Estadísticas -->
@@ -872,6 +1000,62 @@
                     alert('Error al cargar datos del turno');
                 });
         }
+        // Función para cargar turnos en tránsito
+        function cargarTurnosEnTransito() {
+            console.log('🔄 Cargando turnos en tránsito...');
+            
+            fetch('/api/turnos/en-transito')
+                .then(response => response.json())
+                .then(turnos => {
+                    const contenedor = document.getElementById('turnos-transito');
+                    
+                    if (!turnos || turnos.length === 0) {
+                        contenedor.innerHTML = '<div class="sin-transito">No hay turnos en tránsito en este momento</div>';
+                        return;
+                    }
+                    
+                    contenedor.innerHTML = turnos.map(turno => {
+                        const esRetorno = turno.tipo_turno === 'RETORNO';
+                        const icono = esRetorno ? '🔄' : '📍';
+                        const tipoClase = esRetorno ? 'retorno' : '';
+                        const tiempoAlerta = turno.tiempo_en_estacion > 30;
+                        const claseAlerta = tiempoAlerta ? 'alerta' : '';
+                        
+                        return `
+                            <div class="turno-transito ${claseAlerta}">
+                                <div class="transito-header">
+                                    <span class="transito-numero">${icono} ${turno.numero}</span>
+                                    <span class="transito-tiempo ${tiempoAlerta ? '' : 'normal'}">
+                                        ${turno.tiempo_en_estacion} min
+                                    </span>
+                                </div>
+                                <div class="transito-paciente">${turno.paciente_nombre} (${turno.paciente_edad} años)</div>
+                                <div class="transito-detalles">
+                                    <span class="transito-estacion">${turno.estacion_actual_nombre}</span>
+                                    <span class="transito-tipo ${tipoClase}">
+                                        ${esRetorno ? 'Retorno a consulta' : turno.estado}
+                                    </span>
+                                </div>
+                                ${turno.doctor_nombre ? 
+                                `<div class="transito-doctor">👨‍⚕️ ${turno.doctor_nombre}</div>` : ''}
+                                ${tiempoAlerta ? 
+                                '<div class="transito-alerta">⚠️ Tiempo excedido</div>' : ''}
+                            </div>
+                        `;
+                    }).join('');
+                })
+                .catch(error => {
+                    console.error('Error cargando turnos en tránsito:', error);
+                    document.getElementById('turnos-transito').innerHTML = 
+                        '<div class="sin-transito">Error cargando turnos en tránsito</div>';
+                });
+        }
+
+        // Cargar inicialmente y cada 30 segundos
+        document.addEventListener('DOMContentLoaded', function() {
+            cargarTurnosEnTransito();
+            setInterval(cargarTurnosEnTransito, 30000); // Actualizar cada 30 segundos
+        });
 
         function cargarDoctoresParaEdicion() {
             fetch('/api/doctores')

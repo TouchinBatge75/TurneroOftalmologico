@@ -24,19 +24,18 @@ def init_db():
         ''')
         print("✅ Tabla 'doctores' creada")
 
-
-        #Tabla de Consultorios
+        # Tabla de Consultorios
         conn.execute('''
-                CREATE TABLE IF NOT EXISTS consultorios (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    numero TEXT NOT NULL UNIQUE,
-                    ocupado BOOLEAN DEFAULT 0,
-                    doctor_actual INTEGER,
-                    timestamp_ocupado DATETIME,
-                    FOREIGN KEY (doctor_actual) REFERENCES doctores (id)
-                )
-            ''')
-
+            CREATE TABLE IF NOT EXISTS consultorios (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                numero TEXT NOT NULL UNIQUE,
+                ocupado BOOLEAN DEFAULT 0,
+                doctor_actual INTEGER,
+                timestamp_ocupado DATETIME,
+                FOREIGN KEY (doctor_actual) REFERENCES doctores (id)
+            )
+        ''')
+        print("✅ Tabla 'consultorios' creada")
 
         # Tabla de estaciones
         conn.execute('''
@@ -48,15 +47,15 @@ def init_db():
         ''')
         print("✅ Tabla 'estaciones' creada")
         
-        # Tabla de turnos
+        # Tabla de turnos (versión básica primero)
         conn.execute('''
             CREATE TABLE IF NOT EXISTS turnos (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 numero TEXT NOT NULL,
                 paciente_nombre TEXT NOT NULL,
                 paciente_edad INTEGER,
-                tipo TEXT DEFAULT 'CITA',  -- CITA o SIN_CITA
-                estado TEXT DEFAULT 'PENDIENTE',  -- PENDIENTE, EN_ATENCION, COMPLETADO, FINALIZADO
+                tipo TEXT DEFAULT 'CITA',
+                estado TEXT DEFAULT 'PENDIENTE',
                 estacion_actual INTEGER,
                 estacion_siguiente INTEGER,
                 doctor_asignado INTEGER,
@@ -65,7 +64,7 @@ def init_db():
                 timestamp_atencion DATETIME,
                 timestamp_cancelado DATETIME,
                 razon_cancelacion TEXT,
-                tiempo_total INTEGER,  -- en minutos
+                tiempo_total INTEGER,
                 FOREIGN KEY (estacion_actual) REFERENCES estaciones (id),
                 FOREIGN KEY (estacion_siguiente) REFERENCES estaciones (id),
                 FOREIGN KEY (doctor_asignado) REFERENCES doctores (id)
@@ -73,12 +72,31 @@ def init_db():
         ''')
         print("✅ Tabla 'turnos' creada")
         
+        # AGREGAR CAMPOS NUEVOS SI NO EXISTEN
+        try:
+            conn.execute('ALTER TABLE turnos ADD COLUMN notas_adicionales TEXT DEFAULT ""')
+            print("✅ Campo 'notas_adicionales' agregado")
+        except sqlite3.OperationalError as e:
+            if "duplicate column name" in str(e):
+                print("ℹ️ Campo 'notas_adicionales' ya existe")
+            else:
+                raise e
+                
+        try:
+            conn.execute('ALTER TABLE turnos ADD COLUMN historial_notas TEXT DEFAULT "[]"')
+            print("✅ Campo 'historial_notas' agregado")
+        except sqlite3.OperationalError as e:
+            if "duplicate column name" in str(e):
+                print("ℹ️ Campo 'historial_notas' ya existe")
+            else:
+                raise e
+        
         # Tabla de historial para estadísticas
         conn.execute('''
             CREATE TABLE IF NOT EXISTS historial_turnos (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 turno_id INTEGER NOT NULL,
-                accion TEXT NOT NULL,  -- 'CREADO', 'CANCELADO', 'EDITADO', 'FINALIZADO'
+                accion TEXT NOT NULL,
                 detalles TEXT,
                 timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
                 usuario TEXT DEFAULT 'sistema',
@@ -86,6 +104,27 @@ def init_db():
             )
         ''')
         print("✅ Tabla 'historial_turnos' creada")
+
+        # Tabla de mediciones
+        conn.execute('''
+            CREATE TABLE IF NOT EXISTS mediciones_calculos (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                turno_id INTEGER NOT NULL,
+                agudeza_visual_od TEXT,
+                agudeza_visual_oi TEXT,
+                presion_intraocular_od TEXT,
+                presion_intraocular_oi TEXT,
+                queratometria_od TEXT,
+                queratometria_oi TEXT,
+                refraccion_od TEXT,
+                refraccion_oi TEXT,
+                observaciones TEXT,
+                atendido_por TEXT,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (turno_id) REFERENCES turnos (id)
+            )
+        ''')
+        print("✅ Tabla 'mediciones_calculos' creada")
         
         # Insertar estaciones básicas
         estaciones = [

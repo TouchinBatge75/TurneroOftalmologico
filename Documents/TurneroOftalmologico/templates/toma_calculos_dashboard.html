@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Toma de Cálculos - Sistema de Turnos</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .dashboard-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.2em;
+        }
+
+        .dashboard-content {
+            padding: 30px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        .card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            border-left: 4px solid #3498db;
+        }
+
+        .card h3 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 1.4em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .turno-item {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-left: 4px solid #2ecc71;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .turno-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .turno-item.seleccionado {
+            border-left-color: #e74c3c;
+            background: #fff5f5;
+        }
+
+        .turno-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .turno-numero {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .turno-paciente {
+            color: #34495e;
+            margin-bottom: 5px;
+        }
+
+        .turno-detalles {
+            color: #7f8c8d;
+            font-size: 0.9em;
+        }
+
+        .formulario-mediciones {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e1e8ed;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        .mediciones-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .ojo-section {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border: 2px solid #e1e8ed;
+        }
+
+        .ojo-section h4 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #2ecc71 0%, #1abc9c 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 16px;
+            transition: all 0.3s;
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(46, 204, 113, 0.4);
+        }
+
+        .btn-primary:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .sin-turnos {
+            text-align: center;
+            color: #7f8c8d;
+            padding: 40px;
+            font-style: italic;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #7f8c8d;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .mediciones-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <div class="header">
+            <h1>📊 Toma de Cálculos</h1>
+            <p>Mediciones y exámenes oftalmológicos</p>
+        </div>
+
+        <div class="dashboard-content">
+            <!-- Columna izquierda: Lista de pacientes -->
+            <div class="card">
+                <h3>👥 Pacientes en Espera</h3>
+                <div id="pacientes-lista">
+                    <div class="loading">Cargando pacientes...</div>
+                </div>
+            </div>
+
+            <!-- Columna derecha: Formulario de mediciones -->
+            <div class="card">
+                <h3>📝 Registro de Mediciones</h3>
+                <div id="formulario-container">
+                    <div class="sin-turnos">Selecciona un paciente para comenzar</div>
+                    
+                    <form id="formulario-mediciones" style="display: none;">
+                        <div class="turno-info" id="turno-info"></div>
+                        
+                        <div class="formulario-mediciones">
+                            <div class="mediciones-grid">
+                                <!-- Ojo Derecho -->
+                                <div class="ojo-section">
+                                    <h4>👁️ Ojo Derecho (OD)</h4>
+                                    <div class="form-group">
+                                        <label>Agudeza Visual:</label>
+                                        <input type="text" id="agudeza_od" placeholder="20/20">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Presión Intraocular:</label>
+                                        <input type="text" id="presion_od" placeholder="15 mmHg">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Queratometría:</label>
+                                        <input type="text" id="queratometria_od" placeholder="44.25 / 45.75">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Refracción:</label>
+                                        <input type="text" id="refraccion_od" placeholder="-1.25 -0.50 x 180">
+                                    </div>
+                                </div>
+
+                                <!-- Ojo Izquierdo -->
+                                <div class="ojo-section">
+                                    <h4>👁️ Ojo Izquierdo (OI)</h4>
+                                    <div class="form-group">
+                                        <label>Agudeza Visual:</label>
+                                        <input type="text" id="agudeza_oi" placeholder="20/25">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Presión Intraocular:</label>
+                                        <input type="text" id="presion_oi" placeholder="16 mmHg">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Queratometría:</label>
+                                        <input type="text" id="queratometria_oi" placeholder="44.00 / 45.50">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Refracción:</label>
+                                        <input type="text" id="refraccion_oi" placeholder="-1.50 -0.75 x 175">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Notas adicionales -->
+                            <div class="form-group">
+                                <label>Observaciones:</label>
+                                <textarea id="observaciones" rows="3" placeholder="Observaciones adicionales..." style="width: 100%; padding: 10px; border: 2px solid #e1e8ed; border-radius: 5px;"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label>👤 Atendido por (opcional):</label>
+                                <input type="text" id="atendido_por" placeholder="Ej: Dra. Tania" list="empleados">
+                                <datalist id="empleados">
+                                    <option value="Dra. Tania">
+                                    <option value="Dr. Pérez">
+                                    <option value="Enfermera Laura">
+                                    <option value="Técnico Carlos">
+                                    <option value="Dr. García">
+                                    <option value="Dra. Martínez">
+                                </datalist>
+                            </div>
+
+                            <button type="button" class="btn-primary" onclick="finalizarCalculos()">
+                                ✅ Finalizar y Enviar a Consulta
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let turnoSeleccionado = null;
+
+        // Cargar pacientes al iniciar
+        document.addEventListener('DOMContentLoaded', function() {
+            cargarPacientesTomaCalculos();
+            setInterval(cargarPacientesTomaCalculos, 5000); // Actualizar cada 10 segundos
+        });
+
+        // Función para cargar pacientes en Toma de Cálculos
+        function cargarPacientesTomaCalculos() {
+            fetch('/api/turnos/por-estacion/3') // Estación 3 = Toma de Cálculos
+                .then(response => response.json())
+                .then(turnos => {
+                    const lista = document.getElementById('pacientes-lista');
+                    
+                    if (turnos.length === 0) {
+                        lista.innerHTML = '<div class="sin-turnos">No hay pacientes en espera</div>';
+                        return;
+                    }
+                    
+                    lista.innerHTML = turnos.map(turno => `
+                        <div class="turno-item ${turnoSeleccionado?.id === turno.id ? 'seleccionado' : ''}" 
+                             onclick="seleccionarPaciente(${JSON.stringify(turno).replace(/"/g, '&quot;')})">
+                            <div class="turno-header">
+                                <span class="turno-numero">${turno.numero}</span>
+                            </div>
+                            <div class="turno-paciente">
+                                <strong>${turno.paciente_nombre}</strong> (${turno.paciente_edad} años)
+                            </div>
+                            <div class="turno-detalles">
+                                Tipo: ${turno.tipo} | Tiempo: ${turno.tiempo_espera || 0} min
+                            </div>
+                        </div>
+                    `).join('');
+                })
+                .catch(error => {
+                    console.error('Error cargando pacientes:', error);
+                    document.getElementById('pacientes-lista').innerHTML = 
+                        '<div class="sin-turnos">Error cargando pacientes</div>';
+                });
+        }
+
+        // Función para seleccionar paciente
+        function seleccionarPaciente(turno) {
+            turnoSeleccionado = turno;
+            cargarPacientesTomaCalculos(); // Recargar para actualizar selección
+            
+            // Mostrar formulario
+            document.getElementById('formulario-container').innerHTML = `
+                <form id="formulario-mediciones">
+                    <div class="turno-info">
+                        <div class="turno-item seleccionado">
+                            <div class="turno-header">
+                                <span class="turno-numero">${turno.numero}</span>
+                            </div>
+                            <div class="turno-paciente">
+                                <strong>${turno.paciente_nombre}</strong> (${turno.paciente_edad} años)
+                            </div>
+                        </div>
+                    </div>
+                    <div class="formulario-mediciones">
+                        <div class="mediciones-grid">
+                            <!-- Ojo Derecho -->
+                            <div class="ojo-section">
+                                <h4>👁️ Ojo Derecho (OD)</h4>
+                                <div class="form-group">
+                                    <label>Agudeza Visual:</label>
+                                    <input type="text" id="agudeza_od" placeholder="20/20">
+                                </div>
+                                <div class="form-group">
+                                    <label>Presión Intraocular:</label>
+                                    <input type="text" id="presion_od" placeholder="15 mmHg">
+                                </div>
+                                <div class="form-group">
+                                    <label>Queratometría:</label>
+                                    <input type="text" id="queratometria_od" placeholder="44.25 / 45.75">
+                                </div>
+                                <div class="form-group">
+                                    <label>Refracción:</label>
+                                    <input type="text" id="refraccion_od" placeholder="-1.25 -0.50 x 180">
+                                </div>
+                            </div>
+
+                            <!-- Ojo Izquierdo -->
+                            <div class="ojo-section">
+                                <h4>👁️ Ojo Izquierdo (OI)</h4>
+                                <div class="form-group">
+                                    <label>Agudeza Visual:</label>
+                                    <input type="text" id="agudeza_oi" placeholder="20/25">
+                                </div>
+                                <div class="form-group">
+                                    <label>Presión Intraocular:</label>
+                                    <input type="text" id="presion_oi" placeholder="16 mmHg">
+                                </div>
+                                <div class="form-group">
+                                    <label>Queratometría:</label>
+                                    <input type="text" id="queratometria_oi" placeholder="44.00 / 45.50">
+                                </div>
+                                <div class="form-group">
+                                    <label>Refracción:</label>
+                                    <input type="text" id="refraccion_oi" placeholder="-1.50 -0.75 x 175">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Observaciones:</label>
+                            <textarea id="observaciones" rows="3" placeholder="Observaciones adicionales..." style="width: 100%; padding: 10px; border: 2px solid #e1e8ed; border-radius: 5px;"></textarea>
+                        </div>
+
+                        <button type="button" class="btn-primary" onclick="finalizarCalculos()">
+                            ✅ Finalizar y Enviar a Consulta
+                        </button>
+                    </div>
+                </form>
+            `;
+        }
+
+        // Función para finalizar cálculos
+        function finalizarCalculos() {
+            if (!turnoSeleccionado) {
+                alert('Por favor selecciona un paciente');
+                return;
+            }
+
+            const btn = document.querySelector('.btn-primary');
+            btn.disabled = true;
+            btn.textContent = '⏳ Enviando...';
+
+            const datos = {
+                turno_id: turnoSeleccionado.id,
+                mediciones: {
+                    agudeza_od: document.getElementById('agudeza_od').value,
+                    agudeza_oi: document.getElementById('agudeza_oi').value,
+                    presion_od: document.getElementById('presion_od').value,
+                    presion_oi: document.getElementById('presion_oi').value,
+                    queratometria_od: document.getElementById('queratometria_od').value,
+                    queratometria_oi: document.getElementById('queratometria_oi').value,
+                    refraccion_od: document.getElementById('refraccion_od').value,
+                    refraccion_oi: document.getElementById('refraccion_oi').value
+                },
+                observaciones: document.getElementById('observaciones').value
+            };
+
+            fetch('/api/toma-calculos/finalizar', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(datos)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('✅ Mediciones registradas - Paciente enviado a consulta');
+                    turnoSeleccionado = null;
+                    cargarPacientesTomaCalculos();
+                    document.getElementById('formulario-container').innerHTML = 
+                        '<div class="sin-turnos">Selecciona un paciente para comenzar</div>';
+                } else {
+                    alert('Error: ' + (data.error || 'Error al registrar mediciones'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error al conectar con el servidor');
+            })
+            .finally(() => {
+                btn.disabled = false;
+                btn.textContent = '✅ Finalizar y Enviar a Consulta';
+            });
+        }
+    </script>
+</body>
+</html>

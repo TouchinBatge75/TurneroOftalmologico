@@ -200,29 +200,50 @@
             cargarDoctores();
             cargarConsultorios();
             
-            // CORRECCIÓN: Sin paréntesis en las funciones
+            
             setInterval(cargarDoctores, 5000);
             setInterval(cargarConsultorios, 3000);
         });
 
         function cargarDoctores() {
-            fetch('/api/doctores/todos')
-                .then(response => response.json())
-                .then(doctores => {
-                    const select = document.getElementById('doctorSelect');
-                    select.innerHTML = '<option value="">Selecciona tu nombre</option>';
-                    
-                    doctores.forEach(doctor => {
-                        const option = document.createElement('option');
-                        option.value = doctor.id;
-                        option.textContent = doctor.nombre;
-                        select.appendChild(option);
-                    });
-                })
-                .catch(error => {
-                    console.error('Error cargando doctores:', error);
-                });
-        }
+    fetch('/api/doctores/todos')
+        .then(response => response.json())
+        .then(doctores => {
+            const select = document.getElementById('doctorSelect');
+            select.innerHTML = '<option value="">Selecciona tu nombre</option>';
+            
+            // Filtrar doctores que NO estén activos
+            const doctoresDisponibles = doctores.filter(doctor => 
+                doctor.activo === 0 || doctor.activo === false
+            );
+            
+            console.log(`👨‍⚕️ Doctores disponibles: ${doctoresDisponibles.length} de ${doctores.length}`);
+            
+            doctoresDisponibles.forEach(doctor => {
+                const option = document.createElement('option');
+                option.value = doctor.id;
+                option.textContent = doctor.nombre;
+                
+                if (doctor.especialidad) {
+                    option.textContent += ` - ${doctor.especialidad}`;
+                }
+                
+                select.appendChild(option);
+            });
+
+            if (doctoresDisponibles.length === 0) {
+                select.innerHTML = `
+                    <option value="">No hay doctores disponibles</option>
+                    <option value="" disabled>-- Todos están ocupados --</option>
+                `;
+            }
+        })
+        .catch(error => {
+            console.error('Error cargando doctores:', error);
+            document.getElementById('doctorSelect').innerHTML = 
+                '<option value="">Error cargando doctores</option>';
+        });
+}
 
         function cargarConsultorios() {
             console.log('🔄 Actualizando consultorios...');

@@ -426,6 +426,10 @@
                     <div id="paciente-actual" class="sin-turnos">
                         No hay paciente en atención
                     </div>
+                    <div id="mediciones-paciente" style="display: none;">
+                        <h4>📊 Mediciones de Toma de Cálculos:</h4>
+                        <div id="mediciones-content"></div>
+                    </div>
 
                     <!-- Sección de derivación - solo visible cuando hay paciente en atención -->
                     <div id="seccion-derivacion" style="display: none;">
@@ -440,6 +444,12 @@
                                 </button>
                                 <button class="btn-destino" onclick="derivarPaciente('ESTUDIOS_ESPECIALES')">
                                     🔬 Estudios Especiales
+                                </button>
+                                <button class="btn-destino" onclick="derivarPaciente('TOMA_CALCULOS')">
+                                    📊 Toma de Calculos
+                                </button>
+                                <button class="btn-destino" onclick="derivarPaciente('TRABAJO_SOCIAL')">
+                                    🛂 Trabajo Social
                                 </button>
                                 <button class="btn-destino" onclick="derivarPaciente('SALIDA')">
                                     🚪 Salida
@@ -588,6 +598,7 @@
                 .then(data => {
                     const contenedor = document.getElementById('paciente-actual');
                     const seccionDerivacion = document.getElementById('seccion-derivacion');
+                    const medicionesContainer = document.getElementById('mediciones-paciente');
                     
                     if (data.paciente) {
                         pacienteActual = data.paciente;
@@ -605,10 +616,14 @@
                             </div>
                         `;
                         seccionDerivacion.style.display = 'block';
+
+                        cargarMedicionesPaciente(data.paciente.id);
+
                     } else {
                         pacienteActual = null;
                         contenedor.innerHTML = '<div class="sin-turnos">No hay paciente en atención</div>';
                         seccionDerivacion.style.display = 'none';
+                        medicionesContainer.style.display = 'none';
                     }
                 })
                 .catch(error => {
@@ -636,6 +651,58 @@
                     console.error('Error cargando notificaciones:', error);
                 });
         }
+
+        // Función para cargar mediciones del paciente actual
+function cargarMedicionesPaciente(turnoId) {
+    if (!turnoId) return;
+    
+    fetch(`/api/mediciones/${turnoId}`)
+        .then(response => response.json())
+        .then(data => {
+            const medicionesContainer = document.getElementById('mediciones-paciente');
+            const medicionesContent = document.getElementById('mediciones-content');
+            
+            if (data.mediciones) {
+                // Mostrar las mediciones
+                medicionesContent.innerHTML = `
+                    <div style="background: white; padding: 15px; border-radius: 8px; margin-top: 10px;">
+                        <strong>👁️ Agudeza Visual:</strong> 
+                        ${data.mediciones.agudeza_visual_od || 'N/A'} OD / 
+                        ${data.mediciones.agudeza_visual_oi || 'N/A'} OI<br>
+                        
+                        <strong>📊 Presión Intraocular:</strong> 
+                        ${data.mediciones.presion_intraocular_od || 'N/A'} OD / 
+                        ${data.mediciones.presion_intraocular_oi || 'N/A'} OI<br>
+                        
+                        <strong>🔍 Queratometría:</strong> 
+                        ${data.mediciones.queratometria_od || 'N/A'} OD / 
+                        ${data.mediciones.queratometria_oi || 'N/A'} OI<br>
+                        
+                        <strong>👓 Refracción:</strong> 
+                        ${data.mediciones.refraccion_od || 'N/A'} OD / 
+                        ${data.mediciones.refraccion_oi || 'N/A'} OI<br>
+                        
+                        ${data.mediciones.observaciones ? 
+                            `<strong>📝 Observaciones:</strong> ${data.mediciones.observaciones}<br>` : ''}
+                        
+                        ${data.mediciones.atendido_por ? 
+                            `<strong>👤 Atendido por:</strong> ${data.mediciones.atendido_por}<br>` : ''}
+                            
+                        <small style="color: #7f8c8d;">
+                            📅 ${new Date(data.mediciones.timestamp).toLocaleString()}
+                        </small>
+                    </div>
+                `;
+                medicionesContainer.style.display = 'block';
+            } else {
+                medicionesContainer.style.display = 'none';
+            }
+        })
+        .catch(error => {
+            console.error('Error cargando mediciones:', error);
+            document.getElementById('mediciones-paciente').style.display = 'none';
+        });
+}
 
         // Función para llamar siguiente paciente
         function llamarSiguiente() {

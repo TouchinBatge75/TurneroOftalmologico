@@ -54,6 +54,10 @@ def get_doctores():
     conn.close()
     return jsonify([dict(d) for d in doctores])
 
+@app.route('/toma-calculos-dashboard')
+def toma_calculos_dashboard():
+    return render_template('toma_calculos_dashboard.html')
+
 @app.route('/api/estaciones')
 def get_estaciones_disponibles():
     conn = get_db_connection()
@@ -464,7 +468,7 @@ def doctor_logout():
             conn.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
 
-# SISTEMA DE TURNO VIAJERO - NUEVAS RUTAS
+# SISTEMA DE TURNO VIAJERO 
 @app.route('/api/doctor/derivar-paciente', methods=['POST'])
 def derivar_paciente():
     data = request.json
@@ -477,7 +481,9 @@ def derivar_paciente():
     
     try:
         destinos = {
-            'FARMACIA': 5,
+            'TOMA_CALCULOS':3, 
+            'TRABAJO_SOCIAL':4,
+            'FARMACIA':5,
             'ASESORIA_VISUAL': 6,
             'ESTUDIOS_ESPECIALES': 7,
             'SALIDA': 8
@@ -541,6 +547,40 @@ def derivar_paciente():
         if conn:
             conn.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
+
+        @app.route('/api/turnos/en-transito')
+        def get_turnos_en_transito():
+            conn = get_db_connection()
+            
+            turnos = conn.execute('''
+                SELECT t.*, 
+                    e.nombre as estacion_actual_nombre,
+                    d.nombre as doctor_nombre,
+                    CAST((julianday('now') - julianday(
+                        CASE 
+                            WHEN t.timestamp_atencion IS NOT NULL THEN t.timestamp_atencion 
+                            ELSE t.timestamp_creacion 
+                        END
+                    )) * 24 * 60 AS INTEGER) as tiempo_en_estacion,
+                    CASE 
+                        WHEN t.numero LIKE 'R%' THEN 'RETORNO'
+                        ELSE 'NORMAL'
+                    END as tipo_turno
+                FROM turnos t
+                LEFT JOIN estaciones e ON t.estacion_actual = e.id
+                LEFT JOIN doctores d ON t.doctor_asignado = d.id
+                WHERE t.estado IN ('EN_PROCESO', 'EN_ATENCION')
+                OR (t.estado = 'PENDIENTE' AND t.estacion_actual NOT IN (1, 8))
+                ORDER BY 
+                    CASE WHEN t.estado = 'EN_ATENCION' THEN 1
+                        WHEN t.estado = 'EN_PROCESO' THEN 2
+                        ELSE 3
+                    END,
+                    t.timestamp_creacion DESC
+            ''').fetchall()
+            
+            conn.close()
+            return jsonify([dict(turno) for turno in turnos])
 
 # Ruta para obtener paciente en atención actual
 @app.route('/api/doctor/paciente-actual')
@@ -710,6 +750,140 @@ def eliminar_notificacion(notificacion_id):
                 return jsonify({'success': True, 'message': 'Notificación eliminada'})
         return jsonify({'success': False, 'error': 'Notificación no encontrada'}), 404
     except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+    
+
+    # API para obtener turnos en Toma de Cálculos
+@app.route('/api/turnos/por-estacion/<int:estacion_id>')
+def get_turnos_por_estacion(estacion_id):
+    conn = get_db_connection()
+    
+    turnos = conn.execute('''
+        SELECT t.*, 
+               e.nombre as estacion_actual_nombre,
+               d.nombre as doctor_nombre,
+               CAST((julianday('now') - julianday(t.timestamp_creacion)) * 24 * 60 AS INTEGER) as tiempo_espera
+        FROM turnos t
+        LEFT JOIN estaciones e ON t.estacion_actual = e.id
+        LEFT JOIN doctores d ON t.doctor_asignado = d.id
+        WHERE t.estacion_actual = ? AND t.estado IN ('PENDIENTE', 'EN_PROCESO')
+        ORDER BY t.timestamp_creacion ASC
+    ''', (estacion_id,)).fetchall()
+    
+    conn.close()
+    return jsonify([dict(turno) for turno in turnos])
+
+
+@app.route('/api/mediciones/<int:turno_id>')
+def get_mediciones_turno(turno_id):
+    conn = get_db_connection()
+    
+    mediciones = conn.execute('''
+        SELECT * FROM mediciones_calculos 
+        WHERE turno_id = ?
+        ORDER BY timestamp DESC
+        LIMIT 1
+    ''', (turno_id,)).fetchone()
+    
+    conn.close()
+    
+    if mediciones:
+        return jsonify({'success': True, 'mediciones': dict(mediciones)})
+    else:
+        return jsonify({'success': True, 'mediciones': None})
+
+#API para finalizar toma de calculos
+@app.route('/api/toma-calculos/finalizar', methods=['POST'])
+def finalizar_toma_calculos():
+    data = request.json
+    turno_id = data.get('turno_id')
+    mediciones = data.get('mediciones', {})
+    observaciones = data.get('observaciones', '')
+    atendido_por = data.get('atendido_por', '')
+    
+    conn = get_db_connection()
+    
+    try:
+        # 1. GUARDAR MEDICiones ESTRUCTURADAS
+        conn.execute('''
+            INSERT INTO mediciones_calculos 
+            (turno_id, agudeza_visual_od, agudeza_visual_oi, presion_intraocular_od, 
+             presion_intraocular_oi, queratometria_od, queratometria_oi, 
+             refraccion_od, refraccion_oi, observaciones, atendido_por)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (
+            turno_id,
+            mediciones.get('agudeza_od'),
+            mediciones.get('agudeza_oi'),
+            mediciones.get('presion_od'), 
+            mediciones.get('presion_oi'),
+            mediciones.get('queratometria_od'),
+            mediciones.get('queratometria_oi'),
+            mediciones.get('refraccion_od'),
+            mediciones.get('refraccion_oi'),
+            observaciones,
+            atendido_por
+        ))
+        
+        # 2. Actualizar el turno para enviarlo a CONSULTA
+        conn.execute('''
+            UPDATE turnos 
+            SET estacion_actual = 4,  -- Consulta Médica
+                estado = 'PENDIENTE'
+            WHERE id = ?
+        ''', (turno_id,))
+        
+        # 3. Agregar nota resumen a notas_adicionales
+        resumen_mediciones = f"\n--- {datetime.now().strftime('%H:%M')} TOMA CÁLCULOS:"
+        if mediciones.get('agudeza_od'):
+            resumen_mediciones += f"\nAgudeza: {mediciones['agudeza_od']} OD, {mediciones['agudeza_oi']} OI"
+        if mediciones.get('presion_od'):
+            resumen_mediciones += f"\nPIO: {mediciones['presion_od']} OD, {mediciones['presion_oi']} OI"
+        if observaciones:
+            resumen_mediciones += f"\nObs: {observaciones}"
+        if atendido_por:
+            resumen_mediciones += f"\n(Atendido por: {atendido_por})"
+            
+        # Obtener notas actuales y agregar el resumen
+        turno = conn.execute('SELECT notas_adicionales FROM turnos WHERE id = ?', (turno_id,)).fetchone()
+        notas_actuales = turno['notas_adicionales'] or ''
+        nuevas_notas = notas_actuales + resumen_mediciones
+        
+        conn.execute('UPDATE turnos SET notas_adicionales = ? WHERE id = ?', (nuevas_notas, turno_id))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'success': True, 'message': 'Mediciones guardadas y paciente enviado a consulta'})
+        
+    except Exception as e:
+        print(f"Error finalizando toma de cálculos: {e}")
+        if conn:
+            conn.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# API para crear turno directo en Toma de Cálculos (para pruebas)
+@app.route('/api/toma-calculos/turno-prueba', methods=['POST'])
+def crear_turno_prueba_toma_calculos():
+    conn = get_db_connection()
+    
+    try:
+        # Crear turno de prueba directamente en Toma de Cálculos
+        conn.execute('''
+            INSERT INTO turnos (numero, paciente_nombre, paciente_edad, tipo, estado, estacion_actual)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', ('TC001', 'Paciente Prueba', 35, 'CITA', 'PENDIENTE', 3))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'success': True, 'message': 'Turno de prueba creado en Toma de Cálculos'})
+        
+    except Exception as e:
+        print(f"Error creando turno prueba: {e}")
+        if conn:
+            conn.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 if __name__ == '__main__':
