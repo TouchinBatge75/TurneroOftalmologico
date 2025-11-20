@@ -6,6 +6,17 @@ from datetime import datetime
 
 notificaciones_recepcion = []
 
+# Definir NOTIFICACIONES_PREDEFINIDAS globalmente
+NOTIFICACIONES_PREDEFINIDAS = {
+    'AYUDA_GENERAL': '🆘 Necesito ayuda en consultorio',
+    'FALTA_EXPEDIENTE': '📋 Falta expediente del paciente',
+    'ERROR_SISTEMA': '🐛 Error en el sistema',
+    'MATERIAL_MEDICO': '💊 Necesito material médico',
+    'URGENCIA': '🚨 Situación de urgencia',
+    'EQUIPO_AVERIADO': '🔧 Equipo médico averiado',
+    'LIMPIEZA': '🧹 Necesito servicio de limpieza'
+}
+
 app = Flask(__name__)
 
 def get_db_connection():
@@ -33,10 +44,6 @@ def get_turnos():
         ORDER BY t.timestamp_creacion DESC
     ''').fetchall()
     conn.close()
-    
-    # DEBUG: Ver datos
-    for turno in turnos:
-        print(f"DEBUG: Turno {dict(turno)['numero']} - Doctor: {dict(turno)['doctor_nombre']}")
     
     return jsonify([dict(turno) for turno in turnos])
 
@@ -71,30 +78,23 @@ def crear_turno():
         ).fetchone()
         
         if ultimo_turno:
-            # Extraer número del formato A001, A002, etc.
             ultimo_numero = int(ultimo_turno['numero'][1:])
             nuevo_numero = f"A{ultimo_numero + 1:03d}"
         else:
-            # Primer turno del día
             nuevo_numero = "A001"
         
         estacion_inicial = data.get('estacion_inicial', 1)
         doctor_asignado = data.get('doctor_asignado') if estacion_inicial == 4 else None
         
-        # INSERT SIMPLIFICADO - sin estacion_siguiente
         conn.execute('''
             INSERT INTO turnos (numero, paciente_nombre, paciente_edad, tipo, estacion_actual, doctor_asignado)
             VALUES (?, ?, ?, ?, ?, ?)
         ''', (nuevo_numero, data['paciente_nombre'], data['paciente_edad'], data['tipo'], estacion_inicial, doctor_asignado))
         
-        # Obtener el ID del turno recién creado
         turno_id = conn.execute('SELECT last_insert_rowid() as id').fetchone()['id']
-        
-        # Registrar en historial
         registrar_historial(turno_id, 'CREADO', f'Tipo: {data["tipo"]}, Estación: {estacion_inicial}')
         
         conn.commit()
-        
         return jsonify({'success': True, 'numero_turno': nuevo_numero, 'turno_id': turno_id})
         
     except Exception as e:
@@ -102,7 +102,6 @@ def crear_turno():
         if conn:
             conn.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
-        
     finally:
         if conn:
             conn.close()
@@ -122,9 +121,7 @@ def cancelar_turno(turno_id):
     conn.commit()
     conn.close()
     
-    # Registrar en historial para estadísticas
     registrar_historial(turno_id, 'CANCELADO', f'Razón: {razon}', 'recepcion')
-    
     return jsonify({'success': True})
 
 @app.route('/api/turnos/<int:turno_id>/editar', methods=['PUT'])
@@ -142,19 +139,16 @@ def editar_turno(turno_id):
     conn.close()
     return jsonify({'success': True})
 
-# API: Obtener estadísticas del día
+# APIs de estadísticas
 @app.route('/api/estadisticas/dia')
 @app.route('/api/estadisticas/dia/<fecha>')
 def get_estadisticas_dia(fecha=None):
     try:
         stats = obtener_estadisticas_dia(fecha)
-        print(f"📊 Estadísticas del día {fecha}: {stats}")  # Debug
         return jsonify(stats)
     except Exception as e:
-        print(f"Error en API estadísticas día: {e}")
         return jsonify({'error': str(e)}), 500
 
-# API: Obtener estadísticas del mes
 @app.route('/api/estadisticas/mes')
 @app.route('/api/estadisticas/mes/<mes>/<anio>')
 def get_estadisticas_mes(mes=None, anio=None):
@@ -162,14 +156,11 @@ def get_estadisticas_mes(mes=None, anio=None):
         mes = int(mes) if mes else None
         anio = int(anio) if anio else None
         stats = obtener_estadisticas_mensual(mes, anio)
-        print(f"Estadísticas del mes {mes}/{anio}: {stats}")  # Debug
         return jsonify(stats)
     except Exception as e:
-        print(f"Error en API estadísticas mes: {e}")
         return jsonify({'error': str(e)}), 500
-    
 
-    # API: Obtener TODOS los doctores (activos e inactivos)
+# APIs de doctores
 @app.route('/api/doctores/todos')
 def get_todos_doctores():
     conn = get_db_connection()
@@ -177,21 +168,18 @@ def get_todos_doctores():
     conn.close()
     return jsonify([dict(d) for d in doctores])
 
-
-# API: Agregar nuevo doctor
 @app.route('/api/doctores/nuevo', methods=['POST'])
 def agregar_doctor():
     data = request.json
     conn = get_db_connection()
     conn.execute('''
-       INSERT INTO doctores (nombre, especialidad, activo, estado_detallado)
+        INSERT INTO doctores (nombre, especialidad, activo, estado_detallado)
         VALUES (?, ?, 0, 'AUSENTE')
     ''', (data['nombre'], data['especialidad']))
     conn.commit()
     conn.close()
     return jsonify({'success': True})
 
-# API: Eliminar doctor
 @app.route('/api/doctores/<int:doctor_id>', methods=['DELETE'])
 def eliminar_doctor(doctor_id):
     conn = get_db_connection()
@@ -208,33 +196,60 @@ def eliminar_doctor(doctor_id):
             'error': f'No se puede eliminar doctor con {turnos_activos["count"]} turnos activos'
         })
     
-    
     conn.execute('DELETE FROM doctores WHERE id = ?', (doctor_id,))
     conn.commit()
     conn.close()
-    
     return jsonify({'success': True})
 
+# Login y dashboard
 @app.route('/doctor-login')
 def doctor_login_page():
     return render_template('doctor_login.html')
+
+@app.route('/doctor-dashboard')
+def doctor_dashboard():
+    return render_template('doctor_dashboard.html')
 
 # Ruta para el login de doctores
 @app.route('/api/doctor/login', methods=['POST'])
 def doctor_login():
     data = request.json
+    doctor_id = data.get('doctor_id')
+    consultorio_id = data.get('consultorio_id')
+    estado = data.get('estado', 'DISPONIBLE')
+    
     conn = get_db_connection()
     
     try:
-        estado = data.get('estado', 'DISPONIBLE')
-        activo = 0 if estado == 'AUSENTE' else 1
+        consultorio = conn.execute(
+            'SELECT * FROM consultorios WHERE id = ?', 
+            (consultorio_id,)
+        ).fetchone()
+        
+        if not consultorio:
+            conn.close()
+            return jsonify({'success': False, 'error': 'Consultorio no encontrado'}), 404
+            
+        if consultorio['ocupado']:
+            conn.close()
+            return jsonify({'success': False, 'error': 'Este consultorio ya está ocupado'}), 400
+        
+        # OCUPAR EL CONSULTORIO
+        conn.execute('''
+            UPDATE consultorios 
+            SET ocupado = 1, doctor_actual = ?, timestamp_ocupado = CURRENT_TIMESTAMP
+            WHERE id = ?
+        ''', (doctor_id, consultorio_id))
         
         # Actualizar estado del doctor
-        conn.execute('UPDATE doctores SET activo = ?, estado_detallado = ? WHERE id = ?', 
-                    (activo, estado, data['doctor_id']))
+        activo = 0 if estado == 'AUSENTE' else 1
+        conn.execute('''
+            UPDATE doctores 
+            SET activo = ?, estado_detallado = ? 
+            WHERE id = ?
+        ''', (activo, estado, doctor_id))
         
-        # Obtener nombre del doctor para la respuesta
-        doctor = conn.execute('SELECT nombre FROM doctores WHERE id = ?', (data['doctor_id'],)).fetchone()
+        doctor = conn.execute('SELECT nombre FROM doctores WHERE id = ?', (doctor_id,)).fetchone()
         
         conn.commit()
         conn.close()
@@ -242,15 +257,15 @@ def doctor_login():
         return jsonify({
             'success': True, 
             'doctor_nombre': doctor['nombre'],
+            'consultorio_numero': consultorio['numero'],
             'message': 'Sesión iniciada correctamente'
         })
+        
     except Exception as e:
         print(f"Error en login doctor: {e}")
+        if conn:
+            conn.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
-
-@app.route('/doctor-dashboard')
-def doctor_dashboard():
-    return render_template('doctor_dashboard.html')
 
 # API para obtener turnos del doctor
 @app.route('/api/doctor/turnos')
@@ -269,28 +284,17 @@ def get_turnos_doctor():
     conn.close()
     return jsonify([dict(turno) for turno in turnos])
 
-# API para forzar estado de todos los doctores (útil para limpieza)
+# API para forzar estado de todos los doctores
 @app.route('/api/doctores/forzar-ausentes', methods=['POST'])
 def forzar_doctores_ausentes():
     try:
         conn = get_db_connection()
-        
-        # Poner TODOS los doctores como ausentes
         conn.execute('UPDATE doctores SET activo = 0, estado_detallado = "AUSENTE"')
-        
-        # Contar cuántos se actualizaron
         count = conn.execute('SELECT changes()').fetchone()[0]
-        
         conn.commit()
         conn.close()
-        
-        return jsonify({
-            'success': True, 
-            'message': f'Se actualizaron {count} doctores a estado AUSENTE'
-        })
-        
+        return jsonify({'success': True, 'message': f'Se actualizaron {count} doctores a estado AUSENTE'})
     except Exception as e:
-        print(f"Error forzando estado ausente: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 # API para llamar siguiente paciente
@@ -301,7 +305,6 @@ def llamar_siguiente_paciente():
     
     conn = get_db_connection()
     
-    # Obtener el siguiente turno en cola para este doctor
     turno = conn.execute('''
         SELECT t.*, e.nombre as estacion_actual_nombre
         FROM turnos t
@@ -315,20 +318,26 @@ def llamar_siguiente_paciente():
         conn.close()
         return jsonify({'success': False, 'error': 'No hay pacientes en espera'})
     
-    # Actualizar estado del turno a "EN_ATENCION"
     conn.execute('''
         UPDATE turnos 
-        SET estado = "EN_ATENCION", timestamp_atencion = CURRENT_TIMESTAMP
+        SET estado = "EN_ATENCION", 
+            timestamp_atencion = CURRENT_TIMESTAMP,
+            estacion_actual = 4
         WHERE id = ?
     ''', (turno['id'],))
     
+    registrar_historial(turno['id'], 'EN_ATENCION', f'Doctor: {doctor_id}')
     conn.commit()
-    conn.close()
     
-    return jsonify({
-        'success': True, 
-        'turno': dict(turno)
-    })
+    turno_actualizado = conn.execute('''
+        SELECT t.*, e.nombre as estacion_actual_nombre
+        FROM turnos t
+        LEFT JOIN estaciones e ON t.estacion_actual = e.id
+        WHERE t.id = ?
+    ''', (turno['id'],)).fetchone()
+    
+    conn.close()
+    return jsonify({'success': True, 'turno': dict(turno_actualizado)})
 
 # API para cambiar estado del doctor
 @app.route('/api/doctor/cambiar-estado', methods=['POST'])
@@ -339,22 +348,41 @@ def cambiar_estado_doctor():
     
     conn = get_db_connection()
     
-    # Convertir estado a valor activo/inactivo
-    activo = 0 if estado == 'AUSENTE' else 1
-    
-    conn.execute('''
-        UPDATE doctores 
-        SET activo = ?, estado_detallado= ?
-        WHERE id = ?
-    ''', (activo, estado, doctor_id))
-    
-    conn.commit()
-    conn.close()
-    
-    return jsonify({'success': True})
+    try:
+        if estado == 'DISPONIBLE':
+            activo = 1
+            disponible = 1
+            estado_detallado = 'DISPONIBLE'
+        elif estado == 'OCUPADO':
+            activo = 1
+            disponible = 0
+            estado_detallado = 'OCUPADO'
+        elif estado == 'AUSENTE':
+            activo = 0
+            disponible = 0
+            estado_detallado = 'AUSENTE'
+        else:
+            activo = 1
+            disponible = 1
+            estado_detallado = 'DISPONIBLE'
+        
+        conn.execute('''
+            UPDATE doctores 
+            SET activo = ?, disponible = ?, estado_detallado = ?
+            WHERE id = ?
+        ''', (activo, disponible, estado_detallado, doctor_id))
+        
+        conn.commit()
+        conn.close()
+        return jsonify({'success': True, 'estado_actual': estado_detallado})
+        
+    except Exception as e:
+        print(f"Error cambiando estado doctor: {e}")
+        if conn:
+            conn.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
 
-
-# API para obtener consultorios
+# API para consultorios
 @app.route('/api/consultorios')
 def get_consultorios():
     conn = get_db_connection()
@@ -367,7 +395,6 @@ def get_consultorios():
     conn.close()
     return jsonify([dict(c) for c in consultorios])
 
-# API para ocupar un consultorio
 @app.route('/api/consultorios/<int:consultorio_id>/ocupar', methods=['POST'])
 def ocupar_consultorio(consultorio_id):
     data = request.json
@@ -376,7 +403,6 @@ def ocupar_consultorio(consultorio_id):
     conn = get_db_connection()
     
     try:
-        # Verificar si el consultorio ya está ocupado
         consultorio = conn.execute(
             'SELECT ocupado FROM consultorios WHERE id = ?', 
             (consultorio_id,)
@@ -384,12 +410,8 @@ def ocupar_consultorio(consultorio_id):
         
         if consultorio and consultorio['ocupado']:
             conn.close()
-            return jsonify({
-                'success': False, 
-                'error': 'Este consultorio ya está ocupado'
-            })
+            return jsonify({'success': False, 'error': 'Este consultorio ya está ocupado'})
         
-        # Ocupar el consultorio
         conn.execute('''
             UPDATE consultorios 
             SET ocupado = 1, doctor_actual = ?, timestamp_ocupado = CURRENT_TIMESTAMP
@@ -398,55 +420,53 @@ def ocupar_consultorio(consultorio_id):
         
         conn.commit()
         conn.close()
-        
         return jsonify({'success': True, 'message': 'Consultorio ocupado correctamente'})
         
     except Exception as e:
         print(f"Error ocupando consultorio: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
-# API para liberar un consultorio
-@app.route('/api/consultorios/<int:consultorio_id>/liberar', methods=['POST'])
-def liberar_consultorio(consultorio_id):
+# Ruta para logout de doctores
+@app.route('/api/doctor/logout', methods=['POST'])
+def doctor_logout():
     data = request.json
     doctor_id = data.get('doctor_id')
     
     conn = get_db_connection()
     
     try:
-        # Verificar que el doctor sea el que ocupa el consultorio
         consultorio = conn.execute(
-            'SELECT doctor_actual FROM consultorios WHERE id = ?', 
-            (consultorio_id,)
+            'SELECT * FROM consultorios WHERE doctor_actual = ?', 
+            (doctor_id,)
         ).fetchone()
         
-        if consultorio and consultorio['doctor_actual'] != doctor_id:
-            conn.close()
-            return jsonify({
-                'success': False, 
-                'error': 'No puedes liberar un consultorio que no estás ocupando'
-            })
+        if consultorio:
+            conn.execute('''
+                UPDATE consultorios 
+                SET ocupado = 0, doctor_actual = NULL, timestamp_ocupado = NULL
+                WHERE doctor_actual = ?
+            ''', (doctor_id,))
+            print(f"✅ Consultorio {consultorio['numero']} liberado por doctor {doctor_id}")
         
-        # Liberar el consultorio
         conn.execute('''
-            UPDATE consultorios 
-            SET ocupado = 0, doctor_actual = NULL, timestamp_ocupado = NULL
+            UPDATE doctores 
+            SET activo = 0, estado_detallado = "AUSENTE" 
             WHERE id = ?
-        ''', (consultorio_id,))
+        ''', (doctor_id,))
         
         conn.commit()
         conn.close()
-        
-        return jsonify({'success': True, 'message': 'Consultorio liberado correctamente'})
+        return jsonify({'success': True, 'message': 'Sesión cerrada y consultorio liberado correctamente'})
         
     except Exception as e:
-        print(f"Error liberando consultorio: {e}")
+        print(f"Error en logout doctor: {e}")
+        if conn:
+            conn.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
-    
-    
-# API para finalizar consulta
-@app.route('/api/doctor/finalizar-consulta', methods=['POST'])
-def finalizar_consulta():
+
+# SISTEMA DE TURNO VIAJERO - NUEVAS RUTAS
+@app.route('/api/doctor/derivar-paciente', methods=['POST'])
+def derivar_paciente():
     data = request.json
     turno_id = data.get('turno_id')
     destino = data.get('destino')
@@ -455,42 +475,107 @@ def finalizar_consulta():
     
     conn = get_db_connection()
     
-    # Mapear destino a estación
-    destinos = {
-        'FARMACIA': 5,
-        'ASESORIA_VISUAL': 6,
-        'ESTUDIOS_ESPECIALES': 7,
-        'SALIDA': 8
-    }
+    try:
+        destinos = {
+            'FARMACIA': 5,
+            'ASESORIA_VISUAL': 6,
+            'ESTUDIOS_ESPECIALES': 7,
+            'SALIDA': 8
+        }
+        
+        estacion_destino = destinos.get(destino, 8)
+        
+        # Si vuelve a consulta, crear turno de retorno
+        if vuelve_conmigo and destino != 'SALIDA':
+            turno_original = conn.execute(
+                'SELECT * FROM turnos WHERE id = ?', (turno_id,)
+            ).fetchone()
+            
+            if turno_original:
+                nuevo_numero = f"R{turno_original['numero']}"
+                
+                conn.execute('''
+                    INSERT INTO turnos (numero, paciente_nombre, paciente_edad, tipo, 
+                                      estacion_actual, doctor_asignado, estado, prioridad)
+                    VALUES (?, ?, ?, ?, ?, ?, "PENDIENTE", 2)
+                ''', (nuevo_numero, turno_original['paciente_nombre'], 
+                      turno_original['paciente_edad'], 'RETORNO_CONSULTA',
+                      4, turno_original['doctor_asignado']))
+                
+                nuevo_turno_id = conn.execute('SELECT last_insert_rowid() as id').fetchone()['id']
+                registrar_historial(nuevo_turno_id, 'CREADO', 'Turno de retorno a consulta')
+        
+        # Actualizar turno actual
+        if destino == 'SALIDA':
+            conn.execute('''
+                UPDATE turnos 
+                SET estado = "FINALIZADO", 
+                    estacion_actual = ?,
+                    tiempo_total = CAST((julianday('now') - julianday(timestamp_atencion)) * 24 * 60 AS INTEGER)
+                WHERE id = ?
+            ''', (estacion_destino, turno_id))
+        else:
+            conn.execute('''
+                UPDATE turnos 
+                SET estado = "EN_PROCESO", 
+                    estacion_actual = ?,
+                    estacion_siguiente = ?
+                WHERE id = ?
+            ''', (estacion_destino, 4 if vuelve_conmigo else None, turno_id))
+        
+        accion = f'DERIVADO_A_{destino}'
+        detalles = f'Vuelve: {vuelve_conmigo}, Notas: {notas}'
+        registrar_historial(turno_id, accion, detalles)
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True, 
+            'message': f'Paciente derivado a {destino}',
+            'vuelve_conmigo': vuelve_conmigo
+        })
+        
+    except Exception as e:
+        print(f"Error derivando paciente: {e}")
+        if conn:
+            conn.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# Ruta para obtener paciente en atención actual
+@app.route('/api/doctor/paciente-actual')
+def get_paciente_actual():
+    doctor_id = request.args.get('doctor_id')
     
-    estacion_destino = destinos.get(destino, 8)  # Por defecto salida
-    
-    # Actualizar turno
-    conn.execute('''
-        UPDATE turnos 
-        SET estado = "FINALIZADO", 
-            estacion_actual = ?,
-            tiempo_total = CAST((julianday('now') - julianday(timestamp_atencion)) * 24 * 60 AS INTEGER)
-        WHERE id = ?
-    ''', (estacion_destino, turno_id))
-    
-    # Registrar en historial
-    registrar_historial(turno_id, 'FINALIZADO', 
-                       f'Destino: {destino}, Vuelve: {vuelve_conmigo}, Notas: {notas}')
-    
-    conn.commit()
+    conn = get_db_connection()
+    paciente_actual = conn.execute('''
+        SELECT t.*, e.nombre as estacion_actual_nombre
+        FROM turnos t
+        LEFT JOIN estaciones e ON t.estacion_actual = e.id
+        WHERE t.doctor_asignado = ? AND t.estado = "EN_ATENCION"
+        ORDER BY t.timestamp_atencion DESC
+        LIMIT 1
+    ''', (doctor_id,)).fetchone()
     conn.close()
     
-    return jsonify({'success': True})
+    if paciente_actual:
+        return jsonify({'success': True, 'paciente': dict(paciente_actual)})
+    else:
+        return jsonify({'success': True, 'paciente': None})
 
+# SISTEMA DE NOTIFICACIONES MEJORADO
+@app.route('/api/doctor/notificaciones/predefinidas')
+def get_notificaciones_predefinidas():
+    return jsonify({
+        'success': True,
+        'notificaciones': NOTIFICACIONES_PREDEFINIDAS
+    })
 
-# API para notificar a recepción
 @app.route('/api/doctor/notificar-recepcion', methods=['POST'])
 def notificar_recepcion():
     try:
         data = request.json
         
-        # Validar datos requeridos
         required_fields = ['doctor_id', 'doctor_nombre', 'mensaje']
         for field in required_fields:
             if not data.get(field):
@@ -504,22 +589,16 @@ def notificar_recepcion():
             'mensaje': data['mensaje'],
             'timestamp': datetime.now().isoformat(),
             'leida': False,
-            'tipo': 'CONSULTORIO_RECEPCION'
+            'tipo': data.get('tipo', 'GENERAL')
         }
         
-        # Guardar notificación
         notificaciones_recepcion.append(notificacion)
         
-        # Mantener solo las últimas 50 notificaciones
         if len(notificaciones_recepcion) > 50:
             notificaciones_recepcion.pop(0)
         
-        print(f"🔔 NUEVA NOTIFICACIÓN - Doctor: {data['doctor_nombre']}")
-        print(f"📝 Mensaje: {data['mensaje']}")
-        print(f"⏰ Hora: {notificacion['timestamp']}")
-        print("-" * 50)
+        print(f"🔔 NOTIFICACIÓN - Doctor: {data['doctor_nombre']} - {data['mensaje']}")
         
-        # Registrar en historial del sistema
         registrar_historial(0, 'NOTIFICACION_RECEPCION', 
                            f"Doctor: {data['doctor_nombre']} - {data['mensaje']}")
         
@@ -533,23 +612,58 @@ def notificar_recepcion():
         print(f"Error en notificación: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
-# Nuevo endpoint para obtener notificaciones
+@app.route('/api/doctor/notificacion-personalizada', methods=['POST'])
+def notificacion_personalizada():
+    data = request.json
+    
+    try:
+        required_fields = ['doctor_id', 'doctor_nombre', 'mensaje']
+        for field in required_fields:
+            if not data.get(field):
+                return jsonify({'success': False, 'error': f'Campo requerido: {field}'}), 400
+        
+        notificacion = {
+            'id': len(notificaciones_recepcion) + 1,
+            'doctor_id': data['doctor_id'],
+            'doctor_nombre': data['doctor_nombre'],
+            'consultorio': data.get('consultorio', 'No especificado'),
+            'mensaje': data['mensaje'],
+            'timestamp': datetime.now().isoformat(),
+            'leida': False,
+            'tipo': 'PERSONALIZADA'
+        }
+        
+        notificaciones_recepcion.append(notificacion)
+        
+        if len(notificaciones_recepcion) > 50:
+            notificaciones_recepcion.pop(0)
+        
+        print(f"🔔 NOTIFICACIÓN PERSONALIZADA - Doctor: {data['doctor_nombre']} - {data['mensaje']}")
+        
+        registrar_historial(0, 'NOTIFICACION_PERSONALIZADA', 
+                           f"Doctor: {data['doctor_nombre']} - {data['mensaje']}")
+        
+        return jsonify({'success': True, 'message': 'Notificación enviada correctamente'})
+        
+    except Exception as e:
+        print(f"Error en notificación personalizada: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# APIs para gestión de notificaciones en recepción
 @app.route('/api/recepcion/notificaciones')
 def obtener_notificaciones_recepcion():
     try:
-        # Devolver notificaciones no leídas primero
         notificaciones_ordenadas = sorted(
             [n for n in notificaciones_recepcion if not n['leida']],
             key=lambda x: x['timestamp'],
             reverse=True
         )
         
-        # Agregar algunas notificaciones leídas recientes
         notificaciones_leidas = sorted(
             [n for n in notificaciones_recepcion if n['leida']],
             key=lambda x: x['timestamp'],
             reverse=True
-        )[:5]  # Máximo 5 notificaciones leídas
+        )[:5]
         
         todas_notificaciones = notificaciones_ordenadas + notificaciones_leidas
         
@@ -563,7 +677,6 @@ def obtener_notificaciones_recepcion():
         print(f"Error obteniendo notificaciones: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
-# Endpoint para marcar notificación como leída
 @app.route('/api/recepcion/notificaciones/<int:notificacion_id>/leer', methods=['PUT'])
 def marcar_notificacion_leida(notificacion_id):
     try:
@@ -571,56 +684,33 @@ def marcar_notificacion_leida(notificacion_id):
             if notificacion['id'] == notificacion_id:
                 notificacion['leida'] = True
                 return jsonify({'success': True})
-        
         return jsonify({'success': False, 'error': 'Notificación no encontrada'}), 404
-        
     except Exception as e:
-        print(f"Error marcando notificación como leída: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
-    
-    # Endpoint para eliminar todas las notificaciones
+
 @app.route('/api/recepcion/notificaciones/limpiar-todas', methods=['DELETE'])
 def limpiar_todas_notificaciones():
     try:
-        # Contar cuántas se van a eliminar
         cantidad_eliminadas = len(notificaciones_recepcion)
-        
-        # Limpiar todas las notificaciones
         notificaciones_recepcion.clear()
-        
-        print(f"🗑️ Se limpiaron {cantidad_eliminadas} notificaciones")
         return jsonify({
             'success': True, 
             'message': f'Se limpiaron {cantidad_eliminadas} notificaciones',
             'eliminadas': cantidad_eliminadas
         })
-        
     except Exception as e:
-        print(f"Error limpiando notificaciones: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
-# Endpoint para eliminar una notificación específica
 @app.route('/api/recepcion/notificaciones/<int:notificacion_id>', methods=['DELETE'])
 def eliminar_notificacion(notificacion_id):
     try:
-        # Buscar la notificación
         for i, notificacion in enumerate(notificaciones_recepcion):
             if notificacion['id'] == notificacion_id:
-                # Eliminar la notificación
                 notificacion_eliminada = notificaciones_recepcion.pop(i)
-                print(f"🗑️ Notificación eliminada: {notificacion_eliminada['mensaje']}")
-                return jsonify({
-                    'success': True, 
-                    'message': 'Notificación eliminada'
-                })
-        
+                return jsonify({'success': True, 'message': 'Notificación eliminada'})
         return jsonify({'success': False, 'error': 'Notificación no encontrada'}), 404
-        
     except Exception as e:
-        print(f"Error eliminando notificación: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
-
-    return jsonify({'success': True, 'message': 'Notificación recibida'})
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
