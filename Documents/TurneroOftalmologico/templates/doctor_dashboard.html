@@ -426,50 +426,57 @@
                     <div id="paciente-actual" class="sin-turnos">
                         No hay paciente en atención
                     </div>
+                    
+                    <!-- Boton para finalizar consulta -->
+                    <div style="margin: 15px 0; text-align: center;">
+                        <button class="btn-llamar" onclick="finalizarConsulta()" style="background: #6c757d;">
+                            📝 Finalizar Consulta (Sin Derivaciones)
+                        </button>
+                    </div>
+                    
                     <div id="mediciones-paciente" style="display: none;">
                         <h4>📊 Mediciones de Toma de Cálculos:</h4>
                         <div id="mediciones-content"></div>
                     </div>
 
-                    <!-- Sección de derivación - solo visible cuando hay paciente en atención -->
                     <div id="seccion-derivacion" style="display: none;">
                         <div class="derivacion-section">
                             <h4>🚀 Derivar Paciente a:</h4>
-                            <div class="destinos-grid">
-                                <button class="btn-destino" onclick="derivarPaciente('FARMACIA')">
-                                    💊 Farmacia
-                                </button>
-                                <button class="btn-destino" onclick="derivarPaciente('ASESORIA_VISUAL')">
-                                    👓 Asesoría Visual
-                                </button>
-                                <button class="btn-destino" onclick="derivarPaciente('ESTUDIOS_ESPECIALES')">
-                                    🔬 Estudios Especiales
-                                </button>
-                                <button class="btn-destino" onclick="derivarPaciente('TOMA_CALCULOS')">
-                                    📊 Toma de Calculos
-                                </button>
-                                <button class="btn-destino" onclick="derivarPaciente('TRABAJO_SOCIAL')">
-                                    🛂 Trabajo Social
-                                </button>
-                                <button class="btn-destino" onclick="derivarPaciente('SALIDA')">
-                                    🚪 Salida
+                            
+                            <!-- Estudios de Gabinete (con pago) -->
+                            <div style="padding: 15px; background: #fff3cd; border-radius: 8px; border: 1px solid #ffeaa7; margin-bottom: 15px;">
+                                <h4>🔬 Estudios de Gabinete (Requieren Pago)</h4>
+                                <button class="btn-llamar" onclick="derivarAGabinete()" style="background: #ff9800; width: 100%;">
+                                    🔬 Derivar a Estudios de Gabinete
                                 </button>
                             </div>
-                            
-                            <div class="checkbox-group">
-                                <input type="checkbox" id="vuelve-conmigo">
-                                <label for="vuelve-conmigo">🔄 El paciente regresará a consulta</label>
+
+                            <!-- Derivaciones sin pago -->
+                            <div style="padding: 15px; background: #e3f2fd; border-radius: 8px; border: 1px solid #bbdefb;">
+                                <h4>📍 Otras Derivaciones</h4>
+                                <div class="destinos-grid">
+                                    <button class="btn-destino" onclick="derivarPaciente('TRABAJO_SOCIAL')">
+                                        🛂 Trabajo Social
+                                    </button>
+                                    <button class="btn-destino" onclick="derivarPaciente('ASESORIA_VISUAL')">
+                                        👓 Asesoría Visual
+                                    </button>
+                                </div>
+                                
+                                <!-- Notas -->
+                                <div style="margin-top: 15px;">
+                                    <textarea 
+                                        class="textarea-notas" 
+                                        placeholder="Notas adicionales..."
+                                        id="notas-derivacion"
+                                    ></textarea>
+                                </div>
+                                
+                                <!-- Boton de confirmacion -->
+                                <button class="btn-llamar" onclick="confirmarDerivacion()" style="background: #3498db; margin-top: 10px; width: 100%;">
+                                    ✅ Confirmar Derivación a <span id="destino-seleccionado-texto">[Selecciona destino]</span>
+                                </button>
                             </div>
-                            
-                            <textarea 
-                                class="textarea-notas" 
-                                placeholder="Notas adicionales..."
-                                id="notas-derivacion"
-                            ></textarea>
-                            
-                            <button class="btn-llamar" onclick="confirmarDerivacion()">
-                                ✅ Confirmar Derivación
-                            </button>
                         </div>
                     </div>
                 </div>
@@ -498,7 +505,7 @@
             
             // Verificar sesión
             if (!doctorId) {
-                console.error('❌ No hay sesión activa');
+                console.error('No hay sesión activa');
                 alert('No hay sesión activa. Redirigiendo al login...');
                 window.location.href = '/doctor-login';
                 return;
@@ -509,7 +516,7 @@
             document.getElementById('consultorio-info').textContent = `Consultorio: ${consultorioNumero}`;
             document.getElementById('consultorio-numero').textContent = consultorioNumero;
             
-            console.log('✅ Dashboard configurado para:', doctorNombre);
+            console.log('Dashboard configurado para:', doctorNombre);
             
             // Cargar datos iniciales
             cargarTurnos();
@@ -616,9 +623,7 @@
                             </div>
                         `;
                         seccionDerivacion.style.display = 'block';
-
                         cargarMedicionesPaciente(data.paciente.id);
-
                     } else {
                         pacienteActual = null;
                         contenedor.innerHTML = '<div class="sin-turnos">No hay paciente en atención</div>';
@@ -653,56 +658,55 @@
         }
 
         // Función para cargar mediciones del paciente actual
-function cargarMedicionesPaciente(turnoId) {
-    if (!turnoId) return;
-    
-    fetch(`/api/mediciones/${turnoId}`)
-        .then(response => response.json())
-        .then(data => {
-            const medicionesContainer = document.getElementById('mediciones-paciente');
-            const medicionesContent = document.getElementById('mediciones-content');
+        function cargarMedicionesPaciente(turnoId) {
+            if (!turnoId) return;
             
-            if (data.mediciones) {
-                // Mostrar las mediciones
-                medicionesContent.innerHTML = `
-                    <div style="background: white; padding: 15px; border-radius: 8px; margin-top: 10px;">
-                        <strong>👁️ Agudeza Visual:</strong> 
-                        ${data.mediciones.agudeza_visual_od || 'N/A'} OD / 
-                        ${data.mediciones.agudeza_visual_oi || 'N/A'} OI<br>
-                        
-                        <strong>📊 Presión Intraocular:</strong> 
-                        ${data.mediciones.presion_intraocular_od || 'N/A'} OD / 
-                        ${data.mediciones.presion_intraocular_oi || 'N/A'} OI<br>
-                        
-                        <strong>🔍 Queratometría:</strong> 
-                        ${data.mediciones.queratometria_od || 'N/A'} OD / 
-                        ${data.mediciones.queratometria_oi || 'N/A'} OI<br>
-                        
-                        <strong>👓 Refracción:</strong> 
-                        ${data.mediciones.refraccion_od || 'N/A'} OD / 
-                        ${data.mediciones.refraccion_oi || 'N/A'} OI<br>
-                        
-                        ${data.mediciones.observaciones ? 
-                            `<strong>📝 Observaciones:</strong> ${data.mediciones.observaciones}<br>` : ''}
-                        
-                        ${data.mediciones.atendido_por ? 
-                            `<strong>👤 Atendido por:</strong> ${data.mediciones.atendido_por}<br>` : ''}
-                            
-                        <small style="color: #7f8c8d;">
-                            📅 ${new Date(data.mediciones.timestamp).toLocaleString()}
-                        </small>
-                    </div>
-                `;
-                medicionesContainer.style.display = 'block';
-            } else {
-                medicionesContainer.style.display = 'none';
-            }
-        })
-        .catch(error => {
-            console.error('Error cargando mediciones:', error);
-            document.getElementById('mediciones-paciente').style.display = 'none';
-        });
-}
+            fetch(`/api/mediciones/${turnoId}`)
+                .then(response => response.json())
+                .then(data => {
+                    const medicionesContainer = document.getElementById('mediciones-paciente');
+                    const medicionesContent = document.getElementById('mediciones-content');
+                    
+                    if (data.mediciones) {
+                        medicionesContent.innerHTML = `
+                            <div style="background: white; padding: 15px; border-radius: 8px; margin-top: 10px;">
+                                <strong>👁️ Agudeza Visual:</strong> 
+                                ${data.mediciones.agudeza_visual_od || 'N/A'} OD / 
+                                ${data.mediciones.agudeza_visual_oi || 'N/A'} OI<br>
+                                
+                                <strong>📊 Presión Intraocular:</strong> 
+                                ${data.mediciones.presion_intraocular_od || 'N/A'} OD / 
+                                ${data.mediciones.presion_intraocular_oi || 'N/A'} OI<br>
+                                
+                                <strong>🔍 Queratometría:</strong> 
+                                ${data.mediciones.queratometria_od || 'N/A'} OD / 
+                                ${data.mediciones.queratometria_oi || 'N/A'} OI<br>
+                                
+                                <strong>👓 Refracción:</strong> 
+                                ${data.mediciones.refraccion_od || 'N/A'} OD / 
+                                ${data.mediciones.refraccion_oi || 'N/A'} OI<br>
+                                
+                                ${data.mediciones.observaciones ? 
+                                    `<strong>📝 Observaciones:</strong> ${data.mediciones.observaciones}<br>` : ''}
+                                
+                                ${data.mediciones.atendido_por ? 
+                                    `<strong>👤 Atendido por:</strong> ${data.mediciones.atendido_por}<br>` : ''}
+                                    
+                                <small style="color: #7f8c8d;">
+                                    📅 ${new Date(data.mediciones.timestamp).toLocaleString()}
+                                </small>
+                            </div>
+                        `;
+                        medicionesContainer.style.display = 'block';
+                    } else {
+                        medicionesContainer.style.display = 'none';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error cargando mediciones:', error);
+                    document.getElementById('mediciones-paciente').style.display = 'none';
+                });
+        }
 
         // Función para llamar siguiente paciente
         function llamarSiguiente() {
@@ -851,75 +855,176 @@ function cargarMedicionesPaciente(turnoId) {
             });
         }
 
+
         // Función para derivar paciente
-        function derivarPaciente(destino) {
-            destinoSeleccionado = destino;
-            
-            // Resaltar botón seleccionado
-            document.querySelectorAll('.btn-destino').forEach(btn => {
-                btn.style.background = '#3498db';
-            });
-            event.target.style.background = '#2980b9';
+function derivarPaciente(destino) {
+    destinoSeleccionado = destino;
+    
+    console.log('Destino seleccionado:', destino); // Para debug
+    
+    // Actualizar texto del botón
+    let textoDestino = '';
+    switch(destino) {
+        case 'TRABAJO_SOCIAL': textoDestino = 'Trabajo Social'; break;
+        case 'ASESORIA_VISUAL': textoDestino = 'Asesoría Visual'; break;
+    }
+    
+    document.getElementById('destino-seleccionado-texto').textContent = textoDestino;
+    
+    // Resaltar botón seleccionado
+    document.querySelectorAll('.btn-destino').forEach(btn => {
+        btn.style.background = '#3498db';
+        btn.style.border = 'none';
+    });
+    
+    // Encontrar y resaltar el botón que se clickeó
+    const botones = document.querySelectorAll('.btn-destino');
+    for (let btn of botones) {
+        if (btn.textContent.includes(textoDestino)) {
+            btn.style.background = '#2980b9';
+            btn.style.border = '2px solid #1a5276';
+            break;
         }
+    }
+}
 
-        // Función para confirmar derivación
-        function confirmarDerivacion() {
-            if (!destinoSeleccionado) {
-                alert('Por favor selecciona un destino');
-                return;
-            }
-            
-            if (!pacienteActual) {
-                alert('No hay paciente en atención');
-                return;
-            }
-            
-            const vuelveConmigo = document.getElementById('vuelve-conmigo').checked;
-            const notas = document.getElementById('notas-derivacion').value;
-            
-            fetch('/api/doctor/derivar-paciente', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    turno_id: pacienteActual.id,
-                    destino: destinoSeleccionado,
-                    vuelve_conmigo: vuelveConmigo,
-                    notas: notas
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    let mensaje = `✅ Paciente derivado a ${destinoSeleccionado}`;
-                    if (data.vuelve_conmigo) {
-                        mensaje += ' (Regresará a consulta)';
-                    }
-                    mostrarNotificacion(mensaje);
-                    
-                    // Limpiar formulario
-                    destinoSeleccionado = null;
-                    document.getElementById('vuelve-conmigo').checked = false;
-                    document.getElementById('notas-derivacion').value = '';
-                    document.querySelectorAll('.btn-destino').forEach(btn => {
-                        btn.style.background = '#3498db';
-                    });
-                    
-                    // Recargar datos
-                    cargarPacienteActual();
-                    cargarTurnos();
-                } else {
-                    alert('Error: ' + (data.error || 'Error derivando paciente'));
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Error al conectar con el servidor');
-            });
+// Función para derivar a estudios de gabinete - VERSIÓN CORREGIDA
+// Función para derivar a estudios de gabinete - VERSIÓN CON ACTUALIZACIÓN
+function derivarAGabinete() {
+    console.log('🔧 DEBUG: Iniciando derivación a gabinete...');
+    
+    if (!pacienteActual || !pacienteActual.id) {
+        alert('❌ No hay paciente en atención');
+        console.error('No hay pacienteActual:', pacienteActual);
+        return;
+    }
+    
+    console.log('🔧 DEBUG: Paciente actual:', pacienteActual);
+    
+    if (!confirm('¿Derivar paciente actual a Gabinete para estudios?\n\nEl paciente pasará por Recepción para pago antes de ir a Gabinete.')) {
+        return;
+    }
+    
+    const estudios = ['Queratometría', 'Retinografía', 'Topografía'];
+    
+    console.log('🔧 DEBUG: Enviando datos:', {
+        turno_id: pacienteActual.id,
+        estudios: estudios,
+        vuelve_conmigo: true
+    });
+    
+    fetch(`/api/turnos/${pacienteActual.id}/derivar-estudios`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            estudios: estudios,
+            vuelve_conmigo: true
+        })
+    })
+    .then(response => {
+        console.log('🔧 DEBUG: Respuesta status:', response.status);
+        if (!response.ok) {
+            throw new Error('Error HTTP: ' + response.status);
         }
+        return response.json();
+    })
+    .then(data => {
+        console.log('🔧 DEBUG: Respuesta data:', data);
+        if (data.success) {
+            mostrarNotificacion('✅ Paciente derivado a Gabinete. Debe pasar por Recepción para pago.');
+            
+            // 🔄 ACTUALIZACIONES AUTOMÁTICAS - ESTO ES LO NUEVO
+            console.log('🔄 Actualizando dashboard automáticamente...');
+            
+            // 1. Limpiar paciente actual inmediatamente
+            pacienteActual = null;
+            document.getElementById('paciente-actual').innerHTML = '<div class="sin-turnos">No hay paciente en atención</div>';
+            
+            // 2. Ocultar sección de derivación
+            document.getElementById('seccion-derivacion').style.display = 'none';
+            
+            // 3. Recargar lista de turnos
+            cargarTurnos();
+            
+            // 4. Forzar recarga del paciente actual (para asegurar)
+            setTimeout(() => {
+                cargarPacienteActual();
+            }, 500);
+            
+            console.log('✅ Dashboard actualizado automáticamente');
+            
+        } else {
+            alert('❌ Error al derivar paciente: ' + (data.error || 'Error desconocido'));
+        }
+    })
+    .catch(error => {
+        console.error('🔧 DEBUG: Error completo:', error);
+        alert('❌ Error de conexión: ' + error.message);
+    });
+}
+// Función para finalizar consulta 
+function finalizarConsulta() {
+    if (!pacienteActual) {
+        alert('No hay paciente en atención');
+        return;
+    }
 
-        // Función para actualizar estado del doctor (inicial)
+    if (confirm('¿Finalizar consulta y dar por terminada la atención?\n\nEl paciente podrá retirarse del sistema.')) {
+        fetch('/api/doctor/derivar-paciente', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                turno_id: pacienteActual.id,
+                destino: 'SALIDA',
+                vuelve_conmigo: false,
+                notas: 'Consulta finalizada - Alta médica'
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                mostrarNotificacion('✅ Consulta finalizada. Paciente dado de alta.');
+                
+                // Limpiar interfaz
+                limpiarInterfazPaciente();
+                
+            } else {
+                alert('Error: ' + (data.error || 'Error finalizando consulta'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error al conectar con el servidor');
+        });
+    }
+}
+
+// Función auxiliar para limpiar la interfaz
+function limpiarInterfazPaciente() {
+    pacienteActual = null;
+    destinoSeleccionado = null;
+    
+    // Limpiar UI
+    document.getElementById('seccion-derivacion').style.display = 'none';
+    document.getElementById('mediciones-paciente').style.display = 'none';
+    document.getElementById('paciente-actual').innerHTML = '<div class="sin-turnos">No hay paciente en atención</div>';
+    document.getElementById('notas-derivacion').value = '';
+    document.getElementById('destino-seleccionado-texto').textContent = '[Selecciona destino]';
+    
+    // Resetear botones de destino
+    document.querySelectorAll('.btn-destino').forEach(btn => {
+        btn.style.background = '#3498db';
+        btn.style.border = 'none';
+    });
+    
+    // Recargar datos
+    cargarTurnos();
+}
+        // Función para actualizar estado del doctor
         function actualizarEstadoDoctor() {
             // Por defecto, marcar como disponible
             document.querySelector('.btn-disponible').classList.add('activo');

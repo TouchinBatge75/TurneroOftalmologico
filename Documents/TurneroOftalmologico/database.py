@@ -22,7 +22,20 @@ def init_db():
                 estado_detallado TEXT DEFAULT 'AUSENTE'
             )
         ''')
-        print("✅ Tabla 'doctores' creada")
+        print("Tabla 'doctores' creada")
+        
+
+        #Tabla de enfermeros
+        conn.execute('''
+            CREATE TABLE IF NOT EXISTS enfermeros (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                nombre TEXT NOT NULL,
+                activo BOOLEAN DEFAULT 0,
+                fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        print("Tabla 'enfermeros' creada")
+
 
         # Tabla de Consultorios
         conn.execute('''
@@ -35,7 +48,7 @@ def init_db():
                 FOREIGN KEY (doctor_actual) REFERENCES doctores (id)
             )
         ''')
-        print("✅ Tabla 'consultorios' creada")
+        print("Tabla 'consultorios' creada")
 
         # Tabla de estaciones
         conn.execute('''
@@ -45,9 +58,9 @@ def init_db():
                 descripcion TEXT
             )
         ''')
-        print("✅ Tabla 'estaciones' creada")
+        print("Tabla 'estaciones' creada")
         
-        # Tabla de turnos (versión básica primero)
+        # Tabla de turnos
         conn.execute('''
             CREATE TABLE IF NOT EXISTS turnos (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -70,12 +83,13 @@ def init_db():
                 FOREIGN KEY (doctor_asignado) REFERENCES doctores (id)
             )
         ''')
-        print("✅ Tabla 'turnos' creada")
         
-        # AGREGAR CAMPOS NUEVOS SI NO EXISTEN
+        print("Tabla 'turnos' creada")
+        
+        
         try:
             conn.execute('ALTER TABLE turnos ADD COLUMN notas_adicionales TEXT DEFAULT ""')
-            print("✅ Campo 'notas_adicionales' agregado")
+            print("Campo 'notas_adicionales' agregado")
         except sqlite3.OperationalError as e:
             if "duplicate column name" in str(e):
                 print("ℹ️ Campo 'notas_adicionales' ya existe")
@@ -84,12 +98,24 @@ def init_db():
                 
         try:
             conn.execute('ALTER TABLE turnos ADD COLUMN historial_notas TEXT DEFAULT "[]"')
-            print("✅ Campo 'historial_notas' agregado")
+            print("Campo 'historial_notas' agregado")
         except sqlite3.OperationalError as e:
             if "duplicate column name" in str(e):
-                print("ℹ️ Campo 'historial_notas' ya existe")
+                print("ℹCampo 'historial_notas' ya existe")
             else:
                 raise e
+            
+        try:
+            conn.execute('ALTER TABLE turnos ADD COLUMN necesita_retorno BOOLEAN DEFAULT 0')
+            print("Campo 'necesita_retorno' agregado")
+        except sqlite3.OperationalError:
+              print("ℹ️ Campo 'necesita_retorno' ya existe")
+
+        try:
+            conn.execute('ALTER TABLE turnos ADD COLUMN estudios_solicitados TEXT')
+            print("Campo 'estudios_solicitados' agregado")
+        except sqlite3.OperationalError:
+            print("ℹ️ Campo 'estudios_solicitados' ya existe")
         
         # Tabla de historial para estadísticas
         conn.execute('''
@@ -103,7 +129,7 @@ def init_db():
                 FOREIGN KEY (turno_id) REFERENCES turnos (id)
             )
         ''')
-        print("✅ Tabla 'historial_turnos' creada")
+        print("Tabla 'historial_turnos' creada")
 
         # Tabla de mediciones
         conn.execute('''
@@ -124,7 +150,7 @@ def init_db():
                 FOREIGN KEY (turno_id) REFERENCES turnos (id)
             )
         ''')
-        print("✅ Tabla 'mediciones_calculos' creada")
+        print("Tabla 'mediciones_calculos' creada")
         
         # Insertar estaciones básicas
         estaciones = [
@@ -150,27 +176,27 @@ def init_db():
             'INSERT OR IGNORE INTO estaciones (nombre, descripcion) VALUES (?, ?)',
             estaciones
         )
-        print("✅ 8 estaciones insertadas")
+        print("8 estaciones insertadas")
 
         conn.executemany(
             'INSERT OR IGNORE INTO consultorios (numero) VALUES (?)',
             consultorios
         )
-        print("✅ 5 consultorios insertados")
+        print(" 5 consultorios insertados")
         
         # NO insertar doctores - la tabla estará vacía
-        print("ℹ️  Tabla de doctores creada vacía - agrega doctores desde la interfaz")
+        print("ℹTabla de doctores creada vacía - agrega doctores desde la interfaz")
         
         conn.commit()
-        print("✅ Todos los cambios guardados en la base de datos")
+        print("Todos los cambios guardados en la base de datos")
         
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f"Error: {e}")
         conn.rollback()
     finally:
         conn.close()
-        print("✅ Conexión cerrada correctamente")
+        print("Conexión cerrada correctamente")
 
 if __name__ == '__main__':
     init_db()
-    print("🎉 Base de datos inicializada correctamente!")
+    print("Base de datos inicializada correctamente!")
