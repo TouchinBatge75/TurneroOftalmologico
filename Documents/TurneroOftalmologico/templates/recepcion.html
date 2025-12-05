@@ -704,21 +704,21 @@
 <body>
     <div class="container">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <h1>🏥 Sistema de Turnos - Recepción</h1>
-            <button onclick="abrirEstadisticas()" style="background-color: #28a745;">📊 Ver Estadísticas</button>
+            <h1>Sistema de Turnos - Recepción</h1>
+            <button onclick="abrirEstadisticas()" style="background-color: #28a745;">Ver Estadísticas</button>
         </div>
 
         <!-- Formulario de Botones Rápidos -->
         <div class="form-section">
             <h2 class="section-title">Acciones Rápidas</h2>
             <div class="botones-rapidos">
-                <button class="boton-rapido" onclick="limpiarFormulario()">🧹 Limpiar Formulario</button>
-                <button class="boton-rapido secundario" onclick="exportarDatos()">📤 Exportar Datos</button>
-                <button class="boton-rapido terciario" onclick="reiniciarSistema()">🔄 Reiniciar Sistema</button>
-                <button class="boton-rapido cuaternario" onclick="abrirPanelDoctores()">👨🏽‍⚕️ Administrar Doctores</button>
-                <button class="boton-rapido" onclick="abrirPanelEnfermeros()">👨‍⚕️ Gestión Enfermeros</button>
-                <button class="boton-rapido" onclick="verManual()">📖 Manual de Uso</button>
-                <button class="boton-rapido secundario" onclick="hacerBackup()">💾 Hacer Backup</button>
+                <button class="boton-rapido" onclick="limpiarFormulario()">Limpiar Formulario</button>
+                <button class="boton-rapido secundario" onclick="exportarDatos()">Exportar Datos</button>
+                <button class="boton-rapido terciario" onclick="reiniciarSistema()">Reiniciar Sistema</button>
+                <button class="boton-rapido cuaternario" onclick="abrirPanelDoctores()">Administrar Doctores</button>
+                <button class="boton-rapido" onclick="abrirPanelEnfermeros()">Gestión Enfermeros</button>
+                <button class="boton-rapido" onclick="verManual()">Manual de Uso</button>
+                <button class="boton-rapido secundario" onclick="hacerBackup()">Hacer Backup</button>
             </div>
         </div>
 
@@ -768,10 +768,17 @@
                 </div>
                 
                 <!-- Para pacientes sin cita, siempre van a Trabajo Social -->
-                <div class="form-group hidden" id="opcionesSinCita">
-                    <label>Destino Inicial:</label>
-                    <input type="text" value="Trabajo Social" disabled style="background-color: #e9ecef;">
-                    <input type="hidden" id="estacion_sin_cita" value="2">
+                <div class="form-group hidden" id="opcionAfiliado">
+                    <label for="estado_afiliacion">Estado de Afiliación:</label>
+                    <select id="estado_afiliacion" onchange="mostrarDestinoAfiliado()">
+                        <option value="NO_AFILIADO">No Afiliado (primera vez)</option>
+                        <option value="YA_AFILIADO">Ya está Afiliado</option>
+                    </select>
+                </div>
+
+                <div class="form-group hidden" id="destinoAfiliado">
+                    <label>Destino:</label>
+                    <input type="text" id="destino_mostrar" disabled style="background-color: #e9ecef;">
                 </div>
                 
                 <button type="submit">Generar Turno</button>
@@ -780,7 +787,7 @@
 
         <!-- Buscador de turnos -->
         <div class="busqueda-section">
-            <h3>🔍 Buscar Turno</h3>
+            <h3>Buscar Turno</h3>
             <input type="text" id="buscarTurno" placeholder="Buscar por número o nombre...">
             <button onclick="buscarTurno()">Buscar</button>
         </div>
@@ -796,8 +803,8 @@
         <!-- Pacientes para Pago de Gabinete -->
         <div class="form-section">
             <div class="card-header">
-                <h3>💳 Pacientes para Pago de Gabinete</h3>
-                <button onclick="cargarPacientesPagoGabinete()" class="btn-refresh">🔄</button>
+                <h3>Pacientes para Pago de Gabinete</h3>
+                <button onclick="cargarPacientesPagoGabinete()" class="btn-refresh">Actualizar</button>
             </div>
             <div id="pacientes-pago-gabinete" class="transito-container">
                 <div class="loading">Cargando pacientes para pago...</div>
@@ -807,8 +814,8 @@
         <!-- Lista de turnos en tránsito -->
         <div class="card transito-card">
             <div class="card-header">
-                <h3>🚀 Turnos en Tránsito</h3>
-                <button onclick="cargarTurnosEnTransito()" class="btn-refresh">🔄</button>
+                <h3>Turnos en Tránsito</h3>
+                <button onclick="cargarTurnosEnTransito()" class="btn-refresh">Actualizar</button>
             </div>
             <div id="turnos-transito" class="transito-container">
                 <div class="loading">Cargando turnos en tránsito...</div>
@@ -817,27 +824,27 @@
 
         <!-- Estado de Doctores -->
         <div class="form-section">
-            <h3>👨‍⚕️ Estado de Doctores</h3>
+            <h3>Estado de Doctores</h3>
             <div class="visor-doctores" id="visorDoctores">
                 <p>Cargando estado de doctores...</p>
             </div>
-            <button onclick="actualizarEstadoDoctores()" style="background-color: #17a2b8; margin-top: 10px;">🔄 Actualizar Estado</button>
+            <button onclick="actualizarEstadoDoctores()" style="background-color: #17a2b8; margin-top: 10px;">Actualizar Estado</button>
         </div>
 
         <!-- Estado de Enfermeros -->
         <div class="form-section">
-            <h3>👨‍⚕️ Estado de Enfermeros</h3>
+            <h3>Estado de Enfermeros</h3>
             <div class="visor-doctores" id="visorEnfermeros">
                 <p>Cargando estado de enfermeros...</p>
             </div>
             <button onclick="actualizarEstadoEnfermeros()" style="background-color: #17a2b8; margin-top: 10px;">
-                🔄 Actualizar Estado
+                Actualizar Estado
             </button>
         </div>
 
         <!-- Panel para notificaciones -->
         <div class="form-section">
-            <h3>🔔 Notificaciones de Consultorios 
+            <h3>Notificaciones de Consultorios 
                 <span id="badgeNotificaciones" class="badge" style="background: #dc3545; color: white; padding: 2px 8px; border-radius: 10px; display: none;">0</span>
             </h3>
             
@@ -847,10 +854,10 @@
             
             <div style="margin-top: 10px; text-align: center;">
                 <button onclick="limpiarTodasNotificaciones()" style="background-color: #dc3545;">
-                    🗑️ Limpiar Todas
+                    Limpiar Todas
                 </button>
                 <button onclick="cargarNotificaciones()" style="background-color: #17a2b8;">
-                    🔄 Actualizar
+                    Actualizar
                 </button>
             </div>
         </div>
@@ -860,7 +867,7 @@
     <div id="modalEstadisticas" class="modal hidden">
         <div class="modal-content" style="max-width: 800px;">
             <span class="close" onclick="cerrarEstadisticas()">&times;</span>
-            <h2>📊 Estadísticas del Sistema</h2>
+            <h2>Estadísticas del Sistema</h2>
             
             <!-- Selectores de fecha -->
             <div style="margin-bottom: 20px; display: flex; gap: 10px; align-items: center;">
@@ -872,7 +879,7 @@
                     <label for="estadistica_mes">Mes:</label>
                     <input type="month" id="estadistica_mes" onchange="cargarEstadisticasMensual()">
                 </div>
-                <button onclick="imprimirEstadisticas()" style="background-color: #17a2b8;">🖨️ Imprimir</button>
+                <button onclick="imprimirEstadisticas()" style="background-color: #17a2b8;">Imprimir</button>
             </div>
 
             <!-- Contenedor de estadísticas -->
@@ -886,11 +893,11 @@
     <div id="modalDoctores" class="modal hidden">
         <div class="modal-content scrollable" style="max-width: 800px;">
             <span class="close" onclick="cerrarModalDoctores()">&times;</span>
-            <h2>👨‍⚕️ Administración de Doctores</h2>
+            <h2>Administración de Doctores</h2>
             
             <!-- Formulario para agregar doctor -->
             <div class="form-section" style="margin-bottom: 20px;">
-                <h3>➕ Agregar Nuevo Doctor</h3>
+                <h3>Agregar Nuevo Doctor</h3>
                 <form id="formAgregarDoctor">
                     <div class="form-group">
                         <label for="nuevo_doctor_nombre">Nombre del Doctor:</label>
@@ -921,11 +928,11 @@
     <div id="modalEnfermeros" class="modal hidden">
         <div class="modal-content scrollable" style="max-width: 800px;">
             <span class="close" onclick="cerrarModalEnfermeros()">&times;</span>
-            <h2>👨‍⚕️ Gestión de Enfermeros</h2>
+            <h2>Gestión de Enfermeros</h2>
             
             <!-- Formulario para agregar enfermero -->
             <div class="form-section" style="margin-bottom: 20px;">
-                <h3>➕ Agregar Nuevo Enfermero</h3>
+                <h3>Agregar Nuevo Enfermero</h3>
                 <form id="formAgregarEnfermero">
                     <div class="form-group">
                         <label for="nuevo_enfermero_nombre">Nombre del Enfermero:</label>
@@ -949,7 +956,7 @@
     <div id="modalEditar" class="modal hidden">
         <div class="modal-content">
             <span class="close" onclick="cerrarModal()">&times;</span>
-            <h2>✏️ Editar Turno</h2>
+            <h2>Editar Turno</h2>
             <form id="formEditarTurno">
                 <input type="hidden" id="editar_turno_id">
                 
@@ -999,12 +1006,11 @@
     </div>
 
     <script>
-        // =============================================
-        // INICIALIZACIÓN DEL SISTEMA
-        // =============================================
-
+        // Inicialización del sistema - arranca todo cuando carga la página
         let seleccionEstudiosTemporal = {};
+        
         document.addEventListener('DOMContentLoaded', function() {
+            console.log("Sistema de turnos inicializando...");
             cargarTurnos();
             cargarDoctores();
             mostrarOpcionesEspecificas();
@@ -1012,21 +1018,21 @@
             cargarVisorEnfermeros();
             cargarNotificaciones();
             cargarTurnosEnTransito();
+            cargarPacientesPagoGabinete();  // Esta línea estaba faltando
 
-            // Actualizaciones automáticas
+            // Configurar actualizaciones automáticas cada 5 segundos
             setInterval(cargarTurnos, 5000);
             setInterval(cargarDoctores, 5000);
             setInterval(cargarVisorDoctores, 5000);
             setInterval(cargarVisorEnfermeros, 5000);
             setInterval(cargarNotificaciones, 5000);
             setInterval(cargarTurnosEnTransito, 30000);
+            setInterval(cargarPacientesPagoGabinete, 5000);
+            
+            console.log("Sistema listo y funcionando");
         });
 
-        // =============================================
-        // FUNCIONES PRINCIPALES DEL SISTEMA
-        // =============================================
-
-        // Cargar lista de doctores activos
+        // Función para cargar doctores activos
         function cargarDoctores() {
             fetch('/api/doctores')
                 .then(response => response.json())
@@ -1058,25 +1064,32 @@
                 });
         }
 
-        // Mostrar/ocultar opciones según tipo de turno
-        function mostrarOpcionesEspecificas() {
-            const tipo = document.getElementById('tipo').value;
-            const opcionesCita = document.getElementById('opcionesCita');
-            const opcionesSinCita = document.getElementById('opcionesSinCita');
-            const selectorDoctor = document.getElementById('selectorDoctor');
-            
-            opcionesCita.classList.add('hidden');
-            opcionesSinCita.classList.add('hidden');
-            selectorDoctor.classList.add('hidden');
-            
-            if (tipo === 'CITA') {
-                opcionesCita.classList.remove('hidden');
-            } else if (tipo === 'SIN_CITA') {
-                opcionesSinCita.classList.remove('hidden');
-            }
-        }
-
-        // Mostrar selector de doctores solo cuando se selecciona Consulta Médica
+        // Mostrar u ocultar opciones según el tipo de turno seleccionado
+       function mostrarOpcionesEspecificas() {
+    const tipo = document.getElementById('tipo').value;
+    const opcionesCita = document.getElementById('opcionesCita');
+    const selectorDoctor = document.getElementById('selectorDoctor');
+    const opcionAfiliado = document.getElementById('opcionAfiliado');
+    const destinoAfiliado = document.getElementById('destinoAfiliado');
+    
+    // Ocultar todo primero
+    opcionesCita.classList.add('hidden');
+    selectorDoctor.classList.add('hidden');
+    opcionAfiliado.classList.add('hidden');
+    destinoAfiliado.classList.add('hidden');
+    document.getElementById('doctor_asignado').value = '';
+    document.getElementById('estacion_inicial').value = '';
+    
+    // Mostrar solo lo que corresponde
+    if (tipo === 'CITA') {
+        opcionesCita.classList.remove('hidden');
+        mostrarSelectorDoctor(); // Chequear si hay que mostrar selector de doctores
+    } else if (tipo === 'SIN_CITA') {
+        opcionAfiliado.classList.remove('hidden');
+        mostrarDestinoAfiliado(); // Mostrar destino según afiliación
+    }
+}
+        // Mostrar selector de doctores solo para Consulta Médica
         function mostrarSelectorDoctor() {
             const estacionSeleccionada = document.getElementById('estacion_inicial').value;
             const selectorDoctor = document.getElementById('selectorDoctor');
@@ -1089,57 +1102,115 @@
             }
         }
 
-        // Crear nuevo turno
-        document.getElementById('formTurno').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const tipo = document.getElementById('tipo').value;
-            let estacion_inicial, doctor_asignado;
-            
-            if (tipo === 'CITA') {
-                estacion_inicial = document.getElementById('estacion_inicial').value;
-                doctor_asignado = document.getElementById('doctor_asignado').value || null;
-            } else {
-                estacion_inicial = document.getElementById('estacion_sin_cita').value;
-                doctor_asignado = null;
-            }
-            
-            if (!estacion_inicial) {
-                alert('Por favor selecciona un destino inicial');
+
+        // Mostrar el destino según el estado de afiliación
+function mostrarDestinoAfiliado() {
+    const estado = document.getElementById('estado_afiliacion').value;
+    const destinoInput = document.getElementById('destino_mostrar');
+    const destinoDiv = document.getElementById('destinoAfiliado');
+    
+    if (estado === 'NO_AFILIADO') {
+        destinoInput.value = "Trabajo Social (para afiliación)";
+        destinoDiv.classList.remove('hidden');
+    } else if (estado === 'YA_AFILIADO') {
+        destinoInput.value = "Lista de espera de doctor (se asignará automáticamente)";
+        destinoDiv.classList.remove('hidden');
+    } else {
+        destinoDiv.classList.add('hidden');
+    }
+}
+
+// Manejar el envío del formulario para crear turnos
+document.getElementById('formTurno').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    // Obtener valores del formulario
+    const pacienteNombre = document.getElementById('paciente_nombre').value;
+    const pacienteEdad = document.getElementById('paciente_edad').value;
+    const tipo = document.getElementById('tipo').value;
+    
+    // Validar campos requeridos
+    if (!pacienteNombre || !pacienteEdad || !tipo) {
+        alert('Por favor complete todos los campos requeridos');
+        return;
+    }
+    
+    // Preparar datos para enviar
+    const datos = {
+        paciente_nombre: pacienteNombre,
+        paciente_edad: parseInt(pacienteEdad),
+        tipo: tipo
+    };
+    
+    // Agregar datos específicos según el tipo de turno
+    if (tipo === 'CITA') {
+        const estacionInicial = document.getElementById('estacion_inicial').value;
+        if (!estacionInicial) {
+            alert('Por favor seleccione un destino inicial para pacientes con cita');
+            return;
+        }
+        datos.estacion_inicial = parseInt(estacionInicial);
+        
+        // Si es consulta médica, agregar doctor asignado
+        if (estacionInicial === '4') {
+            const doctorAsignado = document.getElementById('doctor_asignado').value;
+            if (!doctorAsignado) {
+                alert('Por favor seleccione un doctor para consulta médica');
                 return;
             }
+            datos.doctor_asignado = parseInt(doctorAsignado);
+        }
+    } else if (tipo === 'SIN_CITA') {
+        const estadoAfiliacion = document.getElementById('estado_afiliacion').value;
+        if (!estadoAfiliacion) {
+            alert('Por favor seleccione el estado de afiliación');
+            return;
+        }
+        datos.estado_afiliacion = estadoAfiliacion;
+    }
+    
+    console.log('Enviando datos:', datos);
+    
+    // Enviar datos al servidor
+    fetch('/api/turnos/nuevo', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(datos)
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Error HTTP: ' + response.status);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            alert('Turno creado exitosamente: ' + data.numero_turno);
             
-            const datos = {
-                paciente_nombre: document.getElementById('paciente_nombre').value,
-                paciente_edad: document.getElementById('paciente_edad').value,
-                tipo: tipo,
-                estacion_inicial: parseInt(estacion_inicial),
-                doctor_asignado: doctor_asignado ? parseInt(doctor_asignado) : null
-            };
-
-            fetch('/api/turnos/nuevo', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(datos)
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert(`✅ Turno generado: ${data.numero_turno}`);
-                    document.getElementById('formTurno').reset();
-                    mostrarOpcionesEspecificas();
-                    cargarTurnos();
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Error al crear el turno');
-            });
-        });
-
-        // Función para cargar turnos
+            // Limpiar formulario
+            document.getElementById('formTurno').reset();
+            mostrarOpcionesEspecificas();
+            
+            // Recargar lista de turnos
+            cargarTurnos();
+            cargarTurnosEnTransito();
+            
+            // Mostrar mensaje adicional si es necesario
+            if (data.mensaje) {
+                console.log(data.mensaje);
+            }
+        } else {
+            alert('Error al crear turno: ' + (data.error || 'Error desconocido'));
+        }
+    })
+    .catch(error => {
+        console.error('Error completo:', error);
+        alert('Error al crear turno: ' + error.message);
+    });
+});
+        // Función para cargar turnos activos
         function cargarTurnos() {
             fetch('/api/turnos')
                 .then(response => response.json())
@@ -1162,8 +1233,8 @@
                             ${turno.doctor_nombre ? `<div class="turno-info">Doctor: ${turno.doctor_nombre}</div>` : ''}
 
                             <div class="turno-acciones">
-                                <button onclick="editarTurno(${turno.id})">✏️ Editar</button>
-                                <button onclick="cancelarTurno(${turno.id})">❌ Cancelar</button>
+                                <button onclick="editarTurno(${turno.id})">Editar</button>
+                                <button onclick="cancelarTurno(${turno.id})">Cancelar</button>
                             </div>
                         </div>
                     `).join('');
@@ -1173,236 +1244,195 @@
                     document.getElementById('listaTurnos').innerHTML = '<p>Error al cargar los turnos</p>';
                 });
         }
-    
-// =============================================
-// SISTEMA DE ESTUDIOS DE GABINETE (SIN PRECIOS)
-// =============================================
 
-// Cargar pacientes que necesitan estudios de gabinete
-function cargarPacientesPagoGabinete() {
-    fetch('/api/turnos/pendientes-pago-gabinete')
-        .then(response => response.json())
-        .then(pacientes => {
-            mostrarPacientesPagoGabinete(pacientes);
-        })
-        .catch(error => {
-            console.error('Error cargando pacientes para estudios:', error);
-            document.getElementById('pacientes-pago-gabinete').innerHTML = 
-                '<div class="sin-pacientes-pago">Error cargando pacientes</div>';
-        });
-}
-
-// Lista de estudios disponibles
-const ESTUDIOS_DISPONIBLES = [
-    'Queratometría',
-    'Retinografía', 
-    'Topografía Corneal',
-    'Paquimetría',
-    'Biometría',
-    'Fondo de Ojo',
-    'Campo Visual',
-    'OCT',
-    'Presión Intraocular',
-    'Agudeza Visual'
-];
-
-// Mostrar lista de pacientes para estudios
-function mostrarPacientesPagoGabinete(pacientes) {
-    const contenedor = document.getElementById('pacientes-pago-gabinete');
-    
-    if (!pacientes || pacientes.length === 0) {
-        contenedor.innerHTML = `
-            <div class="sin-pacientes-pago">
-                <div style="font-size: 48px; margin-bottom: 10px;">-</div>
-                <p>No hay pacientes esperando estudios</p>
-                <p style="font-size: 12px;">Los pacientes aparecerán aquí cuando los doctores los deriven a gabinete</p>
-            </div>
-        `;
-        return;
-    }
-
-    contenedor.innerHTML = pacientes.map(paciente => {
-        // Obtener estudios actuales - priorizar selección temporal si existe
-        let estudiosAMostrar = [];
-        
-        // Si hay selección temporal para este paciente, usarla
-        if (seleccionEstudiosTemporal[paciente.id]) {
-            estudiosAMostrar = seleccionEstudiosTemporal[paciente.id];
-        } else {
-            // Si no, usar los estudios guardados en la base de datos
-            try {
-                estudiosAMostrar = JSON.parse(paciente.estudios_solicitados || '[]');
-            } catch (e) {
-                estudiosAMostrar = [];
-            }
+        // Sistema de estudios de gabinete
+        function cargarPacientesPagoGabinete() {
+            fetch('/api/turnos/pendientes-pago-gabinete')
+                .then(response => response.json())
+                .then(pacientes => {
+                    mostrarPacientesPagoGabinete(pacientes);
+                })
+                .catch(error => {
+                    console.error('Error cargando pacientes para estudios:', error);
+                    document.getElementById('pacientes-pago-gabinete').innerHTML = 
+                        '<div class="sin-pacientes-pago">Error cargando pacientes</div>';
+                });
         }
-        
-        return `
-            <div class="paciente-pago-card">
-                <div class="paciente-pago-header">
-                    <span class="paciente-pago-numero">${paciente.numero}</span>
-                    <small style="color: #6c757d;">${paciente.doctor_nombre || 'Sin doctor'}</small>
-                </div>
-                
-                <div class="paciente-pago-paciente">
-                    ${paciente.paciente_nombre} (${paciente.paciente_edad} años)
-                </div>
-                
-                <!-- Selección de estudios a realizar -->
-                <div class="estudios-lista" style="margin-top: 15px;">
-                    <strong>Selecciona los estudios a realizar:</strong>
-                    <div id="estudios-${paciente.id}" class="estudios-checkbox-container">
-                        ${ESTUDIOS_DISPONIBLES.map(estudio => `
-                            <div class="checkbox-item">
-                                <input type="checkbox" 
-                                       id="estudio-${paciente.id}-${estudio.replace(/\s+/g, '-')}" 
-                                       value="${estudio}"
-                                       ${estudiosAMostrar.includes(estudio) ? 'checked' : ''}
-                                       onchange="actualizarSeleccionTemporal(${paciente.id}, '${estudio}', this.checked)">
-                                <label for="estudio-${paciente.id}-${estudio.replace(/\s+/g, '-')}">
-                                    ${estudio}
-                                </label>
-                            </div>
-                        `).join('')}
+
+        // Lista de estudios disponibles
+        const ESTUDIOS_DISPONIBLES = [
+            'Agudeza Visual',
+            'Presión Intraocular',
+            'Queratometria', 
+            'Tonotometria',
+            'Calculo de LIO',
+            'Refraccion'
+        ];
+
+        // Mostrar lista de pacientes para estudios
+        function mostrarPacientesPagoGabinete(pacientes) {
+            const contenedor = document.getElementById('pacientes-pago-gabinete');
+            
+            if (!pacientes || pacientes.length === 0) {
+                contenedor.innerHTML = `
+                    <div class="sin-pacientes-pago">
+                        <div style="font-size: 48px; margin-bottom: 10px;">-</div>
+                        <p>No hay pacientes esperando estudios</p>
+                        <p style="font-size: 12px;">Los pacientes aparecerán aquí cuando los doctores los deriven a gabinete</p>
                     </div>
-                </div>
-                
-                <button class="btn-confirmar-pago" onclick="confirmarEstudiosGabinete(${paciente.id})">
-                    Confirmar Estudios y Enviar a Gabinete
-                </button>
-            </div>
-        `;
-    }).join('');
-}
-
-function actualizarSeleccionTemporal(turnoId, estudio, estaSeleccionado) {
-    console.log(`Actualizando selección temporal - Turno: ${turnoId}, Estudio: ${estudio}, Seleccionado: ${estaSeleccionado}`);
-    
-    // Inicializar array si no existe
-    if (!seleccionEstudiosTemporal[turnoId]) {
-        seleccionEstudiosTemporal[turnoId] = [];
-    }
-    
-    if (estaSeleccionado) {
-        // Agregar estudio si no existe
-        if (!seleccionEstudiosTemporal[turnoId].includes(estudio)) {
-            seleccionEstudiosTemporal[turnoId].push(estudio);
-        }
-    } else {
-        // Remover estudio si existe
-        seleccionEstudiosTemporal[turnoId] = seleccionEstudiosTemporal[turnoId].filter(e => e !== estudio);
-    }
-    
-    console.log(`Selección temporal actual para turno ${turnoId}:`, seleccionEstudiosTemporal[turnoId]);
-}
-
-// Función para confirmar estudios seleccionados y enviar a gabinete
-function confirmarEstudiosGabinete(turnoId) {
-    // Obtener estudios seleccionados (priorizar selección temporal)
-    let estudiosSeleccionados = [];
-    
-    if (seleccionEstudiosTemporal[turnoId]) {
-        estudiosSeleccionados = seleccionEstudiosTemporal[turnoId];
-    } else {
-        // Si no hay selección temporal, usar los checkboxes actuales
-        const checkboxes = document.querySelectorAll(`#estudios-${turnoId} input[type="checkbox"]:checked`);
-        estudiosSeleccionados = Array.from(checkboxes).map(cb => cb.value);
-    }
-    
-    if (estudiosSeleccionados.length === 0) {
-        alert('Por favor selecciona al menos un estudio a realizar');
-        return;
-    }
-    
-    if (confirm(`¿Confirmar ${estudiosSeleccionados.length} estudio(s) y enviar paciente a Gabinete?\n\nEstudios: ${estudiosSeleccionados.join(', ')}`)) {
-        console.log('Confirmando estudios para turno:', turnoId, 'Estudios:', estudiosSeleccionados);
-        
-        // Primero actualizar los estudios seleccionados en la base de datos
-        fetch(`/api/turnos/${turnoId}/actualizar-estudios`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                estudios: estudiosSeleccionados
-            })
-        })
-        .then(response => {
-            console.log('Respuesta actualizar-estudios status:', response.status);
-            if (!response.ok) {
-                throw new Error('Error HTTP: ' + response.status);
+                `;
+                return;
             }
-            return response.json();
-        })
-        .then(data => {
-            console.log('Respuesta actualizar-estudios:', data);
-            if (data.success) {
-                // Limpiar selección temporal después de guardar
-                delete seleccionEstudiosTemporal[turnoId];
+
+            contenedor.innerHTML = pacientes.map(paciente => {
+                // Obtener estudios actuales - priorizar selección temporal si existe
+                let estudiosAMostrar = [];
                 
-                // Luego enviar a gabinete
-                return fetch(`/api/turnos/${turnoId}/pagar-estudios`, {
+                // Si hay selección temporal para este paciente, usarla
+                if (seleccionEstudiosTemporal[paciente.id]) {
+                    estudiosAMostrar = seleccionEstudiosTemporal[paciente.id];
+                } else {
+                    // Si no, usar los estudios guardados en la base de datos
+                    try {
+                        estudiosAMostrar = JSON.parse(paciente.estudios_solicitados || '[]');
+                    } catch (e) {
+                        estudiosAMostrar = [];
+                    }
+                }
+                
+                return `
+                    <div class="paciente-pago-card">
+                        <div class="paciente-pago-header">
+                            <span class="paciente-pago-numero">${paciente.numero}</span>
+                            <small style="color: #6c757d;">${paciente.doctor_nombre || 'Sin doctor'}</small>
+                        </div>
+                        
+                        <div class="paciente-pago-paciente">
+                            ${paciente.paciente_nombre} (${paciente.paciente_edad} años)
+                        </div>
+                        
+                        <!-- Selección de estudios a realizar -->
+                        <div class="estudios-lista" style="margin-top: 15px;">
+                            <strong>Selecciona los estudios a realizar:</strong>
+                            <div id="estudios-${paciente.id}" class="estudios-checkbox-container">
+                                ${ESTUDIOS_DISPONIBLES.map(estudio => `
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" 
+                                               id="estudio-${paciente.id}-${estudio.replace(/\s+/g, '-')}" 
+                                               value="${estudio}"
+                                               ${estudiosAMostrar.includes(estudio) ? 'checked' : ''}
+                                               onchange="actualizarSeleccionTemporal(${paciente.id}, '${estudio}', this.checked)">
+                                        <label for="estudio-${paciente.id}-${estudio.replace(/\s+/g, '-')}">
+                                            ${estudio}
+                                        </label>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                        
+                        <button class="btn-confirmar-pago" onclick="confirmarEstudiosGabinete(${paciente.id})">
+                            Confirmar Estudios y Enviar a Gabinete
+                        </button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function actualizarSeleccionTemporal(turnoId, estudio, estaSeleccionado) {
+            // Inicializar array si no existe
+            if (!seleccionEstudiosTemporal[turnoId]) {
+                seleccionEstudiosTemporal[turnoId] = [];
+            }
+            
+            if (estaSeleccionado) {
+                // Agregar estudio si no existe
+                if (!seleccionEstudiosTemporal[turnoId].includes(estudio)) {
+                    seleccionEstudiosTemporal[turnoId].push(estudio);
+                }
+            } else {
+                // Remover estudio si existe
+                seleccionEstudiosTemporal[turnoId] = seleccionEstudiosTemporal[turnoId].filter(e => e !== estudio);
+            }
+        }
+
+        // Función para confirmar estudios seleccionados y enviar a gabinete
+        function confirmarEstudiosGabinete(turnoId) {
+            // Obtener estudios seleccionados (priorizar selección temporal)
+            let estudiosSeleccionados = [];
+            
+            if (seleccionEstudiosTemporal[turnoId]) {
+                estudiosSeleccionados = seleccionEstudiosTemporal[turnoId];
+            } else {
+                // Si no hay selección temporal, usar los checkboxes actuales
+                const checkboxes = document.querySelectorAll(`#estudios-${turnoId} input[type="checkbox"]:checked`);
+                estudiosSeleccionados = Array.from(checkboxes).map(cb => cb.value);
+            }
+            
+            if (estudiosSeleccionados.length === 0) {
+                alert('Por favor selecciona al menos un estudio a realizar');
+                return;
+            }
+            
+            if (confirm(`¿Confirmar ${estudiosSeleccionados.length} estudio(s) y enviar paciente a Gabinete?\n\nEstudios: ${estudiosSeleccionados.join(', ')}`)) {
+                // Primero actualizar los estudios seleccionados en la base de datos
+                fetch(`/api/turnos/${turnoId}/actualizar-estudios`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        estudios: estudiosSeleccionados
+                    })
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Error HTTP: ' + response.status);
                     }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        // Limpiar selección temporal después de guardar
+                        delete seleccionEstudiosTemporal[turnoId];
+                        
+                        // Luego enviar a gabinete
+                        return fetch(`/api/turnos/${turnoId}/pagar-estudios`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            }
+                        });
+                    } else {
+                        throw new Error(data.error || 'Error actualizando estudios');
+                    }
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Error HTTP: ' + response.status);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        alert(`${estudiosSeleccionados.length} estudio(s) confirmado(s) - Paciente enviado a Gabinete`);
+                        
+                        // Recargar todo
+                        setTimeout(() => {
+                            cargarPacientesPagoGabinete();
+                            cargarTurnos();
+                            cargarTurnosEnTransito();
+                        }, 500);
+                        
+                    } else {
+                        alert('Error al enviar a gabinete: ' + (data.error || 'Error desconocido'));
+                    }
+                })
+                .catch(error => {
+                    console.error('Error completo:', error);
+                    alert('Error: ' + error.message);
                 });
-            } else {
-                throw new Error(data.error || 'Error actualizando estudios');
             }
-        })
-        .then(response => {
-            console.log('Respuesta pagar-estudios status:', response.status);
-            if (!response.ok) {
-                throw new Error('Error HTTP: ' + response.status);
-            }
-            return response.json();
-        })
-        .then(data => {
-            console.log('Respuesta pagar-estudios:', data);
-            if (data.success) {
-                mostrarNotificacion(`${estudiosSeleccionados.length} estudio(s) confirmado(s) - Paciente enviado a Gabinete`);
-                
-                // Recargar todo
-                setTimeout(() => {
-                    cargarPacientesPagoGabinete();
-                    cargarTurnos();
-                    cargarTurnosEnTransito();
-                }, 500);
-                
-            } else {
-                mostrarNotificacion('Error al enviar a gabinete: ' + (data.error || 'Error desconocido'), 'error');
-            }
-        })
-        .catch(error => {
-            console.error('Error completo:', error);
-            mostrarNotificacion('Error: ' + error.message, 'error');
-        });
-    }
-}
-
-// función para limpiar selecciones temporales cuando se recargan pacientes
-function cargarPacientesPagoGabinete() {
-    console.log('Cargando pacientes para pago de gabinete...');
-    
-    fetch('/api/turnos/pendientes-pago-gabinete')
-        .then(response => response.json())
-        .then(pacientes => {
-            // No limpiar seleccionEstudiosTemporal aquí para mantener las selecciones del usuario
-            mostrarPacientesPagoGabinete(pacientes);
-        })
-        .catch(error => {
-            console.error('Error cargando pacientes para estudios:', error);
-            document.getElementById('pacientes-pago-gabinete').innerHTML = 
-                '<div class="sin-pacientes-pago">Error cargando pacientes</div>';
-        });
-}
-
-// Inicializar sistema de estudios
-document.addEventListener('DOMContentLoaded', function() {
-    cargarPacientesPagoGabinete();
-    setInterval(cargarPacientesPagoGabinete, 5000);
-});
+        }
 
         // Función para cargar turnos en tránsito
         function cargarTurnosEnTransito() {
@@ -1418,17 +1448,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     contenedor.innerHTML = turnos.map(turno => {
                         const esRetorno = turno.tipo_turno === 'RETORNO';
-                        const icono = esRetorno ? '🔄' : '📍';
+                        const icono = esRetorno ? 'Retorno' : 'Normal';
                         const tipoClase = esRetorno ? 'retorno' : '';
-                        const tiempoAlerta = turno.tiempo_en_estacion > 30;
+                        const tiempoAlerta = turno.tiempo_espera > 30; // Cambié tiempo_en_estacion por tiempo_espera
                         const claseAlerta = tiempoAlerta ? 'alerta' : '';
                         
                         return `
                             <div class="turno-transito ${claseAlerta}">
                                 <div class="transito-header">
-                                    <span class="transito-numero">${icono} ${turno.numero}</span>
+                                    <span class="transito-numero">${turno.numero} (${icono})</span>
                                     <span class="transito-tiempo ${tiempoAlerta ? '' : 'normal'}">
-                                        ${turno.tiempo_en_estacion} min
+                                        ${turno.tiempo_espera || 0} min
                                     </span>
                                 </div>
                                 <div class="transito-paciente">${turno.paciente_nombre} (${turno.paciente_edad} años)</div>
@@ -1439,9 +1469,9 @@ document.addEventListener('DOMContentLoaded', function() {
                                     </span>
                                 </div>
                                 ${turno.doctor_nombre ? 
-                                `<div class="transito-doctor">👨‍⚕️ ${turno.doctor_nombre}</div>` : ''}
+                                `<div class="transito-doctor"> ${turno.doctor_nombre}</div>` : ''}
                                 ${tiempoAlerta ? 
-                                '<div class="transito-alerta">⚠️ Tiempo excedido</div>' : ''}
+                                '<div class="transito-alerta">Tiempo excedido</div>' : ''}
                             </div>
                         `;
                     }).join('');
@@ -1453,10 +1483,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
         }
 
-        // =============================================
-        // FUNCIONES DE EDICIÓN Y CANCELACIÓN
-        // =============================================
-
+        // Función para editar turno
         function editarTurno(turnoId) {
             fetch('/api/turnos')
                 .then(response => response.json())
@@ -1578,7 +1605,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        alert('✅ Turno cancelado');
+                        alert('Turno cancelado');
                         cargarTurnos();
                     }
                 })
@@ -1589,14 +1616,11 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
-        // =============================================
-        // FUNCIONES DE BOTONES RÁPIDOS
-        // =============================================
-
+        // Funciones de botones rápidos
         function limpiarFormulario() {
             document.getElementById('formTurno').reset();
             mostrarOpcionesEspecificas();
-            alert('✅ Formulario limpiado');
+            alert('Formulario limpiado');
         }
 
         function exportarDatos() {
@@ -1605,22 +1629,19 @@ document.addEventListener('DOMContentLoaded', function() {
 
         function reiniciarSistema() {
             if (confirm('¿Estás seguro de querer reiniciar el sistema? Esto limpiará todos los turnos activos.')) {
-                alert('🔄 Sistema reiniciado (función en desarrollo)');
+                alert('Sistema reiniciado (función en desarrollo)');
             }
         }
 
         function verManual() {
-            alert('📖 Abriendo manual de usuario...');
+            alert('Abriendo manual de usuario...');
         }
 
         function hacerBackup() {
-            alert('💾 Creando backup de la base de datos...');
+            alert('Creando backup de la base de datos...');
         }
 
-        // =============================================
-        // SISTEMA DE DOCTORES
-        // =============================================
-
+        // Sistema de doctores
         function abrirPanelDoctores() {
             cargarDoctoresAdmin();
             document.getElementById('modalDoctores').classList.remove('hidden');
@@ -1657,67 +1678,68 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="doctor-especialidad">${doctor.especialidad}</div>              
                 </div>
                 <div>
-                    <button class="btn-eliminar" onclick="editarDoctor(${doctor.id})" style="background-color: #17a2b8;">✏️ Editar</button>
-                    <button class="btn-eliminar" onclick="eliminarDoctor(${doctor.id})">🗑️ Eliminar</button>
+                    <button class="btn-eliminar" onclick="editarDoctor(${doctor.id})" style="background-color: #17a2b8;">Editar</button>
+                    <button class="btn-eliminar" onclick="eliminarDoctor(${doctor.id})">Eliminar</button>
                 </div>
             </div>
             `).join('');
         }
+        
         function editarDoctor(doctorId) {
-    // Obtener datos actuales del doctor
-    fetch('/api/doctores/todos')
-        .then(response => response.json())
-        .then(doctores => {
-            const doctor = doctores.find(d => d.id === doctorId);
-            if (!doctor) {
-                alert('Doctor no encontrado');
-                return;
-            }
-            
-            // Pedir nuevos datos
-            const nuevoNombre = prompt('Nuevo nombre del doctor:', doctor.nombre);
-            if (nuevoNombre === null) return; // Usuario canceló
-            
-            const nuevaEspecialidad = prompt('Nueva especialidad:', doctor.especialidad);
-            if (nuevaEspecialidad === null) return;
-            
-            if (nuevoNombre.trim() === '' || nuevaEspecialidad.trim() === '') {
-                alert('Nombre y especialidad son requeridos');
-                return;
-            }
-            
-            // Enviar actualización
-            fetch(`/api/doctores/${doctorId}/editar`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    nombre: nuevoNombre.trim(),
-                    especialidad: nuevaEspecialidad.trim()
+            // Obtener datos actuales del doctor
+            fetch('/api/doctores/todos')
+                .then(response => response.json())
+                .then(doctores => {
+                    const doctor = doctores.find(d => d.id === doctorId);
+                    if (!doctor) {
+                        alert('Doctor no encontrado');
+                        return;
+                    }
+                    
+                    // Pedir nuevos datos
+                    const nuevoNombre = prompt('Nuevo nombre del doctor:', doctor.nombre);
+                    if (nuevoNombre === null) return; // Usuario canceló
+                    
+                    const nuevaEspecialidad = prompt('Nueva especialidad:', doctor.especialidad);
+                    if (nuevaEspecialidad === null) return;
+                    
+                    if (nuevoNombre.trim() === '' || nuevaEspecialidad.trim() === '') {
+                        alert('Nombre y especialidad son requeridos');
+                        return;
+                    }
+                    
+                    // Enviar actualización
+                    fetch(`/api/doctores/${doctorId}/editar`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            nombre: nuevoNombre.trim(),
+                            especialidad: nuevaEspecialidad.trim()
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            cargarDoctoresAdmin();
+                            cargarDoctores();
+                            cargarDoctoresParaEdicion();
+                            alert('Doctor actualizado correctamente');
+                        } else {
+                            alert('Error al actualizar doctor');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Error de conexión');
+                    });
                 })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    cargarDoctoresAdmin();
-                    cargarDoctores();
-                    cargarDoctoresParaEdicion();
-                    mostrarNotificacion('Doctor actualizado correctamente');
-                } else {
-                    mostrarNotificacion('Error al actualizar doctor', 'error');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                mostrarNotificacion('Error de conexión', 'error');
-            });
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Error al cargar datos del doctor');
-        });
-}
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error al cargar datos del doctor');
+                });
+        }
 
         function eliminarDoctor(doctorId) {
             if (confirm('¿Estás seguro de que quieres eliminar este doctor? Esta acción no se puede deshacer.')) {
@@ -1774,10 +1796,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
 
-        // =============================================
-        // SISTEMA DE ENFERMEROS
-        // =============================================
-
+        // Sistema de enfermeros
         function abrirPanelEnfermeros() {
             cargarEnfermerosAdmin();
             document.getElementById('modalEnfermeros').classList.remove('hidden');
@@ -1814,16 +1833,16 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="enfermero-info">
                         <div class="enfermero-nombre">${enfermero.nombre}</div>
                         <div class="enfermero-estado">
-                            Estado: ${enfermero.activo ? '🟢 ACTIVO' : '⚫ INACTIVO'}
+                            Estado: ${enfermero.activo ? 'ACTIVO' : 'INACTIVO'}
                         </div>
                     </div>
                     <div>
                         <button class="btn-activar-enfermero ${enfermero.activo ? '' : 'inactivo'}" 
                                 onclick="toggleActivoEnfermero(${enfermero.id})">
-                            ${enfermero.activo ? '🔴 Desactivar' : '🟢 Activar'}
+                            ${enfermero.activo ? 'Desactivar' : 'Activar'}
                         </button>
-                        <button class="btn-eliminar" onclick="editarEnfermero(${enfermero.id})">✏️ Editar</button>
-                        <button class="btn-eliminar" onclick="eliminarEnfermero(${enfermero.id})">🗑️ Eliminar</button>
+                        <button class="btn-eliminar" onclick="editarEnfermero(${enfermero.id})">Editar</button>
+                        <button class="btn-eliminar" onclick="eliminarEnfermero(${enfermero.id})">Eliminar</button>
                     </div>
                 </div>
             `).join('');
@@ -1860,7 +1879,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="enfermero-status-card activo">
                         <div class="doctor-status-nombre">${enfermero.nombre}</div>
                         <div class="doctor-status-estado">
-                            🟢 ACTIVO
+                            ACTIVO
                         </div>
                     </div>
                 `).join('')}
@@ -1869,7 +1888,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="enfermero-status-card inactivo">
                         <div class="doctor-status-nombre">${enfermero.nombre}</div>
                         <div class="doctor-status-estado">
-                            ⚫ INACTIVO
+                            INACTIVO
                         </div>
                     </div>
                 `).join('')}
@@ -1893,14 +1912,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (data.success) {
                     cargarEnfermerosAdmin();
                     cargarVisorEnfermeros();
-                    mostrarNotificacion('Estado de enfermero actualizado');
+                    alert('Estado de enfermero actualizado');
                 } else {
-                    mostrarNotificacion('Error al actualizar enfermero', 'error');
+                    alert('Error al actualizar enfermero');
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                mostrarNotificacion('Error de conexión', 'error');
+                alert('Error de conexión');
             });
         }
 
@@ -1919,14 +1938,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (data.success) {
                         cargarEnfermerosAdmin();
                         cargarVisorEnfermeros();
-                        mostrarNotificacion('Enfermero actualizado');
+                        alert('Enfermero actualizado');
                     } else {
-                        mostrarNotificacion('Error al editar enfermero', 'error');
+                        alert('Error al editar enfermero');
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    mostrarNotificacion('Error de conexión', 'error');
+                    alert('Error de conexión');
                 });
             }
         }
@@ -1941,14 +1960,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (data.success) {
                         cargarEnfermerosAdmin();
                         cargarVisorEnfermeros();
-                        mostrarNotificacion('Enfermero eliminado');
+                        alert('Enfermero eliminado');
                     } else {
                         alert(data.error || 'Error al eliminar enfermero');
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    mostrarNotificacion('Error de conexión', 'error');
+                    alert('Error de conexión');
                 });
             }
         }
@@ -1974,27 +1993,24 @@ document.addEventListener('DOMContentLoaded', function() {
                     document.getElementById('formAgregarEnfermero').reset();
                     cargarEnfermerosAdmin();
                     cargarVisorEnfermeros();
-                    mostrarNotificacion('Enfermero agregado');
+                    alert('Enfermero agregado');
                 } else {
-                    mostrarNotificacion('Error al agregar enfermero', 'error');
+                    alert('Error al agregar enfermero');
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                mostrarNotificacion('Error de conexión', 'error');
+                alert('Error de conexión');
             });
         });
 
         // Actualizar estado manualmente
         function actualizarEstadoEnfermeros() {
             cargarVisorEnfermeros();
-            mostrarNotificacion('Estado de enfermeros actualizado');
+            alert('Estado de enfermeros actualizado');
         }
 
-        // =============================================
-        // FUNCIONES DE ESTADÍSTICAS
-        // =============================================
-
+        // Funciones de estadísticas
         function abrirEstadisticas() {
             const hoy = new Date().toISOString().split('T')[0];
             document.getElementById('estadistica_fecha').value = hoy;
@@ -2047,7 +2063,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const contenedor = document.getElementById('contenedorEstadisticas');
             
             const html = `
-                <h3>📅 Estadísticas del ${estadisticas.fecha}</h3>
+                <h3>Estadísticas del ${estadisticas.fecha}</h3>
                 
                 <div class="estadisticas-grid">
                     <div class="estadistica-card">
@@ -2076,7 +2092,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 ${estadisticas.cancelaciones_por_razon && estadisticas.cancelaciones_por_razon.length > 0 ? `
                     <div class="estadistica-tendencia">
-                        <h4>📉 Cancelaciones por Razón</h4>
+                        <h4>Cancelaciones por Razón</h4>
                         ${estadisticas.cancelaciones_por_razon.map(razon => `
                             <div class="tendencia-item">
                                 <span>${razon.razon_cancelacion || 'No especificada'}</span>
@@ -2094,7 +2110,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const contenedor = document.getElementById('contenedorEstadisticas');
             
             const html = `
-                <h3>📈 Estadísticas del Mes: ${estadisticas.mes}</h3>
+                <h3>Estadísticas del Mes: ${estadisticas.mes}</h3>
                 
                 <div class="estadisticas-grid">
                     <div class="estadistica-card">
@@ -2118,7 +2134,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 ${estadisticas.tendencia_diaria && estadisticas.tendencia_diaria.length > 0 ? `
                     <div class="estadistica-tendencia">
-                        <h4>📊 Tendencia Diaria</h4>
+                        <h4>Tendencia Diaria</h4>
                         ${estadisticas.tendencia_diaria.map(dia => `
                             <div class="tendencia-item">
                                 <span>${dia.fecha}</span>
@@ -2137,11 +2153,7 @@ document.addEventListener('DOMContentLoaded', function() {
             window.print();
         }
 
-        // =============================================
-        // FUNCIONES PARA EL ESTATUS DE DOCTORES
-        // =============================================
-
-        // Función para cargar el visor de estado de doctores
+        // Funciones para el estatus de doctores
         function cargarVisorDoctores() {
             fetch('/api/doctores/todos')
                 .then(response => response.json())
@@ -2167,20 +2179,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 const estaActivo = doctor.activo === 1;
                 const estado = doctor.estado_detallado || (estaActivo ? 'DISPONIBLE' : 'AUSENTE');
                 
-                let statusClass, statusText, statusIcon;
+                let statusClass, statusText;
                 
                 if (estado === 'DISPONIBLE') {
                     statusClass = 'activo';
-                    statusText = '🟢 Disponible';
-                    statusIcon = '🟢';
+                    statusText = 'Disponible';
                 } else if (estado === 'EN_CONSULTA') {
                     statusClass = 'ocupado';
-                    statusText = '🟡 En Consulta';
-                    statusIcon = '🟡';
+                    statusText = 'En Consulta';
                 } else {
                     statusClass = 'inactivo';
-                    statusText = '🔴 Sin conexión';
-                    statusIcon = '🔴';
+                    statusText = 'Sin conexión';
                 }
                 
                 return `
@@ -2188,7 +2197,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <div class="doctor-status-nombre">${doctor.nombre}</div>
                         <div class="doctor-status-especialidad">${doctor.especialidad}</div>
                         <div class="doctor-status-estado">
-                            ${statusIcon} ${statusText}
+                            ${statusText}
                         </div>
                     </div>
                 `;
@@ -2202,14 +2211,10 @@ document.addEventListener('DOMContentLoaded', function() {
         // Función para actualizar manualmente
         function actualizarEstadoDoctores() {
             cargarVisorDoctores();
-            mostrarNotificacion('Estado de doctores actualizado');
+            alert('Estado de doctores actualizado');
         }
 
-        // =============================================
-        // FUNCIONES PARA NOTIFICACIONES
-        // =============================================
-
-        // Función para limpiar todas las notificaciones
+        // Funciones para notificaciones
         function limpiarTodasNotificaciones() {
             fetch('/api/recepcion/notificaciones')
                 .then(response => response.json())
@@ -2228,15 +2233,15 @@ document.addEventListener('DOMContentLoaded', function() {
                         .then(response => response.json())
                         .then(data => {
                             if (data.success) {
-                                mostrarNotificacion(`✅ Se limpiaron ${data.eliminadas} notificaciones`);
+                                alert(`Se limpiaron ${data.eliminadas} notificaciones`);
                                 cargarNotificaciones();
                             } else {
-                                mostrarNotificacion('❌ Error al limpiar notificaciones');
+                                alert('Error al limpiar notificaciones');
                             }
                         })
                         .catch(error => {
                             console.error('Error:', error);
-                            mostrarNotificacion('❌ Error de conexión');
+                            alert('Error de conexión');
                         });
                     }
                 })
@@ -2255,15 +2260,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        mostrarNotificacion('✅ Notificación eliminada');
+                        alert('Notificación eliminada');
                         cargarNotificaciones();
                     } else {
-                        mostrarNotificacion('❌ Error al eliminar notificación');
+                        alert('Error al eliminar notificación');
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    mostrarNotificacion('❌ Error de conexión');
+                    alert('Error de conexión');
                 });
             }
         }
@@ -2275,7 +2280,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (notificaciones.length === 0) {
                 contenedor.innerHTML = `
                     <div style="text-align: center; padding: 20px; color: #6c757d;">
-                        <div style="font-size: 48px; margin-bottom: 10px;">😴</div>
+                        <div style="font-size: 48px; margin-bottom: 10px;">-</div>
                         <p>No hay notificaciones</p>
                         <p style="font-size: 12px;">Los doctores aparecerán aquí cuando te necesiten</p>
                     </div>
@@ -2297,16 +2302,16 @@ document.addEventListener('DOMContentLoaded', function() {
                                 background: #dc3545; color: white; border: none; 
                                 border-radius: 3px; padding: 2px 6px; font-size: 10px;
                                 cursor: pointer;">
-                        ❌
+                        X
                     </button>
                     
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-right: 25px;">
                         <div style="flex: 1;">
-                            <strong>👨‍⚕️ ${notif.doctor_nombre}</strong>
+                            <strong>${notif.doctor_nombre}</strong>
                             ${notif.consultorio ? `<br><small>Consultorio: ${notif.consultorio}</small>` : ''}
                             <div style="margin-top: 8px; color: #495057;">${notif.mensaje}</div>
                         </div>
-                        ${!notif.leida ? '<span style="color: #ffc107; font-size: 20px;">🔔</span>' : ''}
+                        ${!notif.leida ? '<span style="color: #ffc107; font-size: 20px;">!</span>' : ''}
                     </div>
                     
                     <div style="text-align: right; margin-top: 8px;">
@@ -2347,45 +2352,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
-        // Función para mostrar notificaciones flotantes
-        function mostrarNotificacion(mensaje, tipo = 'info') {
-            const tipos = {
-                'info': { color: '#17a2b8', icon: 'ℹ️' },
-                'success': { color: '#28a745', icon: '✅' },
-                'warning': { color: '#ffc107', icon: '⚠️' },
-                'error': { color: '#dc3545', icon: '❌' }
-            };
-            
-            const config = tipos[tipo] || tipos['info'];
-            
-            const notificacion = document.createElement('div');
-            notificacion.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                background: ${config.color};
-                color: white;
-                padding: 15px 20px;
-                border-radius: 5px;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-                z-index: 10000;
-                max-width: 300px;
-                animation: slideIn 0.3s ease-out;
-            `;
-            
-            notificacion.innerHTML = `<strong>${config.icon} ${mensaje}</strong>`;
-            document.body.appendChild(notificacion);
-            
-            setTimeout(() => {
-                notificacion.style.animation = 'slideOut 0.3s ease-in';
-                setTimeout(() => {
-                    if (notificacion.parentNode) {
-                        notificacion.parentNode.removeChild(notificacion);
-                    }
-                }, 300);
-            }, 3000);
-        }
-
         // Función para buscar turnos
         function buscarTurno() {
             const termino = document.getElementById('buscarTurno').value.trim();
@@ -2419,8 +2385,8 @@ document.addEventListener('DOMContentLoaded', function() {
                             ${turno.doctor_nombre ? `<div class="turno-info">Doctor: ${turno.doctor_nombre}</div>` : ''}
 
                             <div class="turno-acciones">
-                                <button onclick="editarTurno(${turno.id})">✏️ Editar</button>
-                                <button onclick="cancelarTurno(${turno.id})">❌ Cancelar</button>
+                                <button onclick="editarTurno(${turno.id})">Editar</button>
+                                <button onclick="cancelarTurno(${turno.id})">Cancelar</button>
                             </div>
                         </div>
                     `).join('');
@@ -2430,10 +2396,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     alert('Error al buscar turnos');
                 });
         }
-
-        // =============================================
-        // EVENT LISTENERS PARA MODALES
-        // =============================================
 
         // Cerrar modales al hacer clic fuera
         document.getElementById('modalEstadisticas').addEventListener('click', function(e) {

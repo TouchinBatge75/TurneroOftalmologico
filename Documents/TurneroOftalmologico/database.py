@@ -160,7 +160,7 @@ def init_db():
             ('Consulta Médica', 'Consulta con el medico asignado'),
             ('Farmacia', 'Entrega de medicamentos'),
             ('Asesoria Visual', 'Orientación sobre lentes'),
-            ('Estudios Especiales', 'Exámenes especializados'),
+            ('Sala de Espera', 'Esperando asignación de doctor o turno'),
             ('Salida', 'Final del proceso')
         ]
 

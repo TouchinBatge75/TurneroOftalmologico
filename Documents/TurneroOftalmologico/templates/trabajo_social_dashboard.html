@@ -1,0 +1,414 @@
+<!-- templates/trabajo_social_dashboard.html -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trabajo Social - Pacientes Nuevos</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #ecf0f1;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .header {
+            background: #2c3e50;
+            color: white;
+            padding: 20px;
+            border-radius: 8px 8px 0 0;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 22px;
+        }
+
+        .header-subtitle {
+            margin-top: 5px;
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .header-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 15px;
+        }
+
+        .badge {
+            background: #e74c3c;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .current-time {
+            font-size: 14px;
+            font-family: monospace;
+        }
+
+        /* Contenido principal */
+        .content {
+            padding: 20px;
+        }
+
+        .pacientes-container {
+            min-height: 300px;
+        }
+
+        .paciente-card {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 12px;
+        }
+
+        .paciente-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 10px;
+        }
+
+        .paciente-nombre {
+            font-weight: bold;
+            font-size: 16px;
+            color: #2c3e50;
+        }
+
+        .turno-numero {
+            background: #9b59b6;
+            color: white;
+            padding: 3px 10px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: bold;
+        }
+
+        .paciente-info {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+
+        .info-item {
+            color: #7f8c8d;
+        }
+
+        .info-item strong {
+            color: #2c3e50;
+        }
+
+        .tiempo-espera {
+            background: #e74c3c;
+            color: white;
+            padding: 3px 10px;
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .tiempo-espera.normal {
+            background: #27ae60;
+        }
+
+        .acciones {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            flex: 1;
+            transition: background 0.3s;
+            font-weight: 500;
+        }
+
+        .btn-afiliar {
+            background: #2ecc71;
+            color: white;
+        }
+
+        .btn-afiliar:hover {
+            background: #27ae60;
+        }
+
+        .sin-pacientes {
+            text-align: center;
+            padding: 40px;
+            color: #95a5a6;
+            font-style: italic;
+        }
+
+        .sin-pacientes .icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        /* Estadísticas */
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid #ecf0f1;
+        }
+
+        .stat-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .stat-valor {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin: 5px 0;
+        }
+
+        .stat-label {
+            color: #7f8c8d;
+            font-size: 12px;
+        }
+
+        .reload-btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 20px;
+            width: 100%;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .reload-btn:hover {
+            background: #2980b9;
+        }
+
+        @media (max-width: 768px) {
+            .paciente-info {
+                grid-template-columns: 1fr;
+            }
+            
+            .acciones {
+                flex-direction: column;
+            }
+            
+            .stats {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>Trabajo Social</h1>
+            <div class="header-subtitle">Afiliación de Pacientes Nuevos</div>
+            <div class="header-info">
+                <div class="badge" id="pacientesCount">0 pacientes</div>
+                <div class="current-time" id="currentTime">--:--:--</div>
+            </div>
+        </div>
+
+        <!-- Contenido -->
+        <div class="content">
+            <h2 style="color: #2c3e50; margin-bottom: 20px; font-size: 18px;">
+                Pacientes Pendientes de Afiliación
+            </h2>
+            
+            <div id="pacientesLista">
+                <p>Cargando lista de pacientes...</p>
+            </div>
+
+            <button class="reload-btn" onclick="cargarPacientes()">
+                Actualizar Lista
+            </button>
+
+            <!-- Estadísticas -->
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-valor" id="statPendientes">0</div>
+                    <div class="stat-label">Pendientes de Afiliación</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-valor" id="statAfiliados">0</div>
+                    <div class="stat-label">Afiliados Hoy</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let pacientes = [];
+
+        // Inicializar
+        document.addEventListener('DOMContentLoaded', function() {
+            cargarPacientes();
+            actualizarHora();
+            cargarEstadisticas();
+            
+            setInterval(cargarPacientes, 30000);
+            setInterval(actualizarHora, 1000);
+        });
+
+        // Actualizar hora
+        function actualizarHora() {
+            const ahora = new Date();
+            const hora = ahora.toLocaleTimeString('es-ES');
+            document.getElementById('currentTime').textContent = hora;
+        }
+
+        // Cargar pacientes
+        async function cargarPacientes() {
+            try {
+                const response = await fetch('/api/trabajo-social/pacientes');
+                const data = await response.json();
+                
+                if (data.success) {
+                    pacientes = data.pacientes;
+                    mostrarPacientes(pacientes);
+                    document.getElementById('pacientesCount').textContent = 
+                        pacientes.length + ' paciente' + (pacientes.length !== 1 ? 's' : '');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('pacientesLista').innerHTML = 
+                    '<div class="sin-pacientes"><p>Error al cargar pacientes</p></div>';
+            }
+        }
+
+        // Mostrar pacientes
+        function mostrarPacientes(pacientesMostrar) {
+            const contenedor = document.getElementById('pacientesLista');
+            
+            if (!pacientesMostrar || pacientesMostrar.length === 0) {
+                contenedor.innerHTML = `
+                    <div class="sin-pacientes">
+                        <div class="icon">✓</div>
+                        <p>No hay pacientes pendientes de afiliación</p>
+                        <p style="font-size: 13px;">Todos los pacientes han sido procesados</p>
+                    </div>
+                `;
+                return;
+            }
+
+            contenedor.innerHTML = pacientesMostrar.map(paciente => {
+                const tiempoEspera = paciente.tiempo_espera || calcularTiempoEspera(paciente.timestamp_creacion);
+                const esLargo = tiempoEspera > 45; // Más de 45 minutos
+                
+                return `
+                    <div class="paciente-card">
+                        <div class="paciente-header">
+                            <div class="paciente-nombre">${paciente.paciente_nombre}</div>
+                            <div class="turno-numero">${paciente.numero}</div>
+                        </div>
+                        
+                        <div class="paciente-info">
+                            <div class="info-item">
+                                <strong>Edad:</strong> ${paciente.paciente_edad} años
+                            </div>
+                            <div class="info-item">
+                                <strong>Llegada:</strong> ${formatearHora(paciente.timestamp_creacion)}
+                            </div>
+                            <div class="info-item">
+                                <strong>Tiempo esperando:</strong>
+                                <span class="tiempo-espera ${esLargo ? '' : 'normal'}">
+                                    ${tiempoEspera} minutos
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <div class="acciones">
+                            <button class="btn btn-afiliar" onclick="afiliarPaciente(${paciente.id}, '${paciente.paciente_nombre}')">
+                                Paciente Afiliado
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Funciones auxiliares
+        function calcularTiempoEspera(timestamp) {
+            const llegada = new Date(timestamp);
+            const ahora = new Date();
+            return Math.floor((ahora - llegada) / (1000 * 60));
+        }
+
+        function formatearHora(timestamp) {
+            return new Date(timestamp).toLocaleTimeString('es-ES', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        // Afiliar paciente
+        async function afiliarPaciente(turnoId, nombrePaciente) {
+            if (!confirm(`¿Confirmar afiliación del paciente?\n\n${nombrePaciente}\n\nUna vez afiliado, el paciente quedará en espera de asignación de doctor.`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/trabajo-social/pacientes/${turnoId}/afiliar`, {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('✓ Paciente afiliado exitosamente\n\nEl paciente ahora está en espera de asignación de doctor.');
+                    cargarPacientes();
+                    cargarEstadisticas();
+                } else {
+                    alert('✗ Error: ' + data.error);
+                }
+            } catch (error) {
+                alert('✗ Error de conexión');
+            }
+        }
+
+        // Estadísticas
+        async function cargarEstadisticas() {
+            try {
+                const response = await fetch('/api/trabajo-social/estadisticas');
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('statPendientes').textContent = data.pendientes || 0;
+                    document.getElementById('statAfiliados').textContent = data.afiliados_hoy || 0;
+                }
+            } catch (error) {
+                console.error('Error cargando estadísticas:', error);
+            }
+        }
+    </script>
+</body>
+</html>

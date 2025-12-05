@@ -2,10 +2,32 @@
 import sqlite3
 from datetime import datetime
 
-def get_db_connection():
-    conn = sqlite3.connect('turnos.db')
-    conn.row_factory = sqlite3.Row
-    return conn
+from db_utils import get_db_connection
+from datetime import datetime
+
+def registrar_historial(turno_id, accion, detalles="", usuario="sistema"):
+    """Registra una acción en el historial para estadísticas"""
+    try:
+        with get_db_connection() as conn:
+            conn.execute('''
+                INSERT INTO historial_turnos (turno_id, accion, detalles, usuario)
+                VALUES (?, ?, ?, ?)
+            ''', (turno_id, accion, detalles, usuario))
+        return True
+    except Exception as e:
+        print(f"Error en registrar_historial: {e}")
+        return False
+
+def verificar_columna_existe(tabla, columna):
+    """Verifica si una columna existe en una tabla"""
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.execute(f"PRAGMA table_info({tabla})")
+            columnas = [col[1] for col in cursor.fetchall()]
+            return columna in columnas
+    except:
+        return False
+
 
 def registrar_historial(turno_id, accion, detalles="", usuario="sistema"):
     """Registra una acción en el historial para estadísticas"""
